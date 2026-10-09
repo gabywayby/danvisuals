@@ -10,6 +10,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400;500;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="config.js" defer></script>
+  <script src="booking.js" defer></script>
 </head>
 <body>
   <header class="nav">
@@ -60,7 +63,7 @@
       <button class="btn booking-submit full-field" type="submit">Send booking inquiry</button>
       <p class="booking-status full-field" id="bookingStatus" role="status" aria-live="polite"></p>
     </form>
-    <p class="privacy-note">Privacy: The details you provide are used to respond to your inquiry and coordinate your event booking. FormSubmit processes your submission and emails it to Dan Visuals.</p>
+    <p class="privacy-note">Privacy: The details you provide are stored in Dan Visuals’ booking system and used to respond to your inquiry and coordinate your event booking.</p>
     <a class="booking-back" href="index.html">← Back to Dan Visuals</a>
   </main>
   <footer>© <span id="year"></span> Dan Visuals</footer>
@@ -80,34 +83,6 @@
         menu.classList.remove("is-open");
         menuButton.setAttribute("aria-expanded", "false");
         menuButton.setAttribute("aria-label", "Open navigation");
-      }
-    });
-    const selectedPackage = new URLSearchParams(window.location.search).get("package");
-    if (selectedPackage) document.querySelector('[name="package"]').value = selectedPackage;
-    document.getElementById("bookingForm").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const form = event.currentTarget;
-      const button = form.querySelector("button[type='submit']");
-      const status = document.getElementById("bookingStatus");
-      const details = Object.fromEntries(new FormData(form).entries());
-      details._subject = `New booking inquiry — ${details.name}`;
-      details._replyto = details.email;
-      button.disabled = true;
-      status.textContent = "Sending your inquiry…";
-      try {
-        const response = await fetch("https://formsubmit.co/ajax/gabrieldandelamin700@gmail.com", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Accept": "application/json" },
-          body: JSON.stringify(details)
-        });
-        const result = await response.json();
-        if (!response.ok || result.success === false) throw new Error("Submission failed");
-        status.textContent = "Your inquiry was sent. Thank you! I’ll be in touch soon.";
-        form.reset();
-      } catch (error) {
-        status.textContent = "Sorry, your inquiry could not be sent. Please email gabrieldandelamin700@gmail.com directly.";
-      } finally {
-        button.disabled = false;
       }
     });
   </script>
