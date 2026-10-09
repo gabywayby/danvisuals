@@ -5,7 +5,7 @@ Static photography website hosted on GitHub Pages. The public booking form and p
 ## Admin setup
 
 1. Create a Supabase project.
-2. In the SQL Editor, replace `YOUR_ADMIN_EMAIL` in `schema.sql` and `migrations/003_blocked_dates.sql` with the admin account email, then run `schema.sql`.
+2. In the SQL Editor, confirm the admin email in `schema.sql` and `migrations/003_blocked_dates.sql` matches the Authentication account, then run `schema.sql`.
 3. Run every SQL file in `migrations/` in numerical order. These migrations are needed by the finished booking and admin pages.
 4. Create the admin user in Supabase Authentication with that exact email and a password.
 5. Disable new signups in Authentication settings.

@@ -1,4 +1,4 @@
--- Replace YOUR_ADMIN_EMAIL with the exact email used by the Supabase admin account.
+-- Admin access is restricted to this Supabase Authentication email.
 create table if not exists public.bookings (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
@@ -29,15 +29,15 @@ create policy "Public can submit new bookings"
 drop policy if exists "Admin can read bookings" on public.bookings;
 create policy "Admin can read bookings"
   on public.bookings for select to authenticated
-  using ((auth.jwt() ->> 'email') = 'YOUR_ADMIN_EMAIL');
+  using ((auth.jwt() ->> 'email') = 'gabrieldandelamin700@gmail.com');
 
 drop policy if exists "Admin can update bookings" on public.bookings;
 create policy "Admin can update bookings"
   on public.bookings for update to authenticated
-  using ((auth.jwt() ->> 'email') = 'YOUR_ADMIN_EMAIL')
-  with check ((auth.jwt() ->> 'email') = 'YOUR_ADMIN_EMAIL');
+  using ((auth.jwt() ->> 'email') = 'gabrieldandelamin700@gmail.com')
+  with check ((auth.jwt() ->> 'email') = 'gabrieldandelamin700@gmail.com');
 
 drop policy if exists "Admin can delete bookings" on public.bookings;
 create policy "Admin can delete bookings"
   on public.bookings for delete to authenticated
-  using ((auth.jwt() ->> 'email') = 'YOUR_ADMIN_EMAIL');
+  using ((auth.jwt() ->> 'email') = 'gabrieldandelamin700@gmail.com');

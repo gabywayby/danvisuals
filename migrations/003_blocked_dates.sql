@@ -16,17 +16,17 @@ create policy "Public can read blocked dates"
 drop policy if exists "Admin can read blocked dates" on public.blocked_dates;
 create policy "Admin can read blocked dates"
   on public.blocked_dates for select to authenticated
-  using ((auth.jwt() ->> 'email') = 'YOUR_ADMIN_EMAIL');
+  using ((auth.jwt() ->> 'email') = 'gabrieldandelamin700@gmail.com');
 
 drop policy if exists "Admin can add blocked dates" on public.blocked_dates;
 create policy "Admin can add blocked dates"
   on public.blocked_dates for insert to authenticated
-  with check ((auth.jwt() ->> 'email') = 'YOUR_ADMIN_EMAIL');
+  with check ((auth.jwt() ->> 'email') = 'gabrieldandelamin700@gmail.com');
 
 drop policy if exists "Admin can remove blocked dates" on public.blocked_dates;
 create policy "Admin can remove blocked dates"
   on public.blocked_dates for delete to authenticated
-  using ((auth.jwt() ->> 'email') = 'YOUR_ADMIN_EMAIL');
+  using ((auth.jwt() ->> 'email') = 'gabrieldandelamin700@gmail.com');
 
 create or replace function public.reject_blocked_booking_date()
 returns trigger
