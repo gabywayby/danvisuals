@@ -7,7 +7,7 @@
   const button = form.querySelector("button[type='submit']");
   const status = document.getElementById("bookingStatus");
   const dateField = form.elements.date;
-  let blockedDates = null;
+  let blockedDates = new Set();
 
   async function loadBlockedDates() {
     const { data, error } = await client.from("blocked_dates").select("blocked_date");
@@ -29,10 +29,6 @@
     }
     if (!client) {
       status.textContent = "Booking is not configured yet. Please contact Dan Visuals directly.";
-      return;
-    }
-    if (!blockedDates) {
-      status.textContent = "We can’t verify availability right now. Please try again shortly.";
       return;
     }
     if (blockedDates.has(dateField.value)) {
@@ -67,6 +63,7 @@
       console.error("Booking insert failed:", error);
       if (error.message?.includes("This date is unavailable")) {
         status.textContent = "That date is unavailable. Please choose another date.";
+        blockedDates ||= new Set();
         blockedDates.add(dateField.value);
         return;
       }
