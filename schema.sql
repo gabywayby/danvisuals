@@ -17,8 +17,7 @@ create table if not exists public.bookings (
 
 alter table public.bookings enable row level security;
 revoke all on public.bookings from anon, authenticated;
-grant insert (package, name, phone, email, event, event_date, event_time, location, payment)
-  on public.bookings to anon;
+grant insert on public.bookings to anon;
 grant select, update, delete on public.bookings to authenticated;
 
 drop policy if exists "Public can submit new bookings" on public.bookings;
