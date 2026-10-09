@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400;500;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="admin-bookings.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
   <script src="config.js" defer></script>
   <script src="admin.js" defer></script>
@@ -50,7 +51,15 @@
       </div>
       <section id="bookingsView" class="view-panel" role="tabpanel" aria-labelledby="bookingsTab">
         <div class="view-toolbar"><p>Manage inquiries and payment details.</p><button class="button" id="exportCsv" type="button">Export CSV</button></div>
-        <div class="table-wrap"><table><thead><tr><th>Event date</th><th>Client</th><th>Package</th><th>Price</th><th>Deposit</th><th>Balance due</th><th>Event</th><th>Contact</th><th>Notes</th><th>Gallery delivery</th><th>Status</th><th>Action</th></tr></thead><tbody id="bookingsBody"></tbody></table></div>
+        <div class="filter-bar" id="bookingFilters">
+          <button class="filter-pill is-active" data-filter="all" type="button">All</button>
+          <button class="filter-pill" data-filter="new" type="button">New</button>
+          <button class="filter-pill" data-filter="confirmed" type="button">Confirmed</button>
+          <button class="filter-pill" data-filter="completed" type="button">Completed</button>
+          <button class="filter-pill" data-filter="cancelled" type="button">Cancelled</button>
+          <input type="search" placeholder="Search name, email, phone, location" aria-label="Search bookings">
+        </div>
+        <div class="booking-list" id="bookingsBody"></div>
         <p id="emptyBookings" class="empty-state hidden">No bookings yet.</p>
       </section>
       <section id="calendarView" class="view-panel hidden" role="tabpanel" aria-labelledby="calendarTab">

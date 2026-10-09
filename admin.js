@@ -9,6 +9,8 @@
   const signOutButton = document.getElementById("signOutButton");
   const bookingsBody = document.getElementById("bookingsBody");
   const emptyBookings = document.getElementById("emptyBookings");
+  const bookingFilters = document.getElementById("bookingFilters");
+  const bookingSearch = bookingFilters.querySelector('input[type="search"]');
   const calendarGrid = document.getElementById("calendarGrid");
   const selectedDayPanel = document.getElementById("selectedDayPanel");
   const calendarTitle = document.getElementById("calendarTitle");
@@ -22,6 +24,7 @@
   let bookings = [];
   let blockedDates = [];
   let selectedDay;
+  let activeBookingFilter = "all";
   let month = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
   const localDate = (value) => {
@@ -40,13 +43,28 @@
   };
   const activeBookingsForDate = (value) => bookings.filter((item) => item.event_date === value && item.status !== "cancelled");
   const hasDateConflict = (value) => activeBookingsForDate(value).length > 1;
-  const appendTextCell = (row, value, className = "") => {
-    const cell = document.createElement("td");
-    if (className) cell.className = className;
-    cell.textContent = value == null ? "" : String(value);
-    row.append(cell);
-    return cell;
+  const make = (tag, className, value) => {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    if (value != null) element.textContent = String(value);
+    return element;
   };
+
+  function applyBookingFilters() {
+    const query = bookingSearch.value.trim().toLocaleLowerCase();
+    let visible = 0;
+    bookingsBody.querySelectorAll(".booking-card").forEach((card) => {
+      const booking = bookings.find((item) => item.id === card.dataset.bookingId);
+      const searchable = [booking?.name, booking?.email, booking?.phone, booking?.location]
+        .join(" ").toLocaleLowerCase();
+      const matches = (activeBookingFilter === "all" || card.dataset.status === activeBookingFilter)
+        && (!query || searchable.includes(query));
+      card.hidden = !matches;
+      if (matches) visible += 1;
+    });
+    emptyBookings.textContent = bookings.length ? "No bookings match these filters." : "No bookings yet.";
+    emptyBookings.classList.toggle("hidden", visible > 0);
+  }
 
   function setSignedIn(isSignedIn) {
     loginPanel.classList.toggle("hidden", isSignedIn);
@@ -63,120 +81,129 @@
   }
 
   function renderTable() {
+    const openDetails = new Set([...bookingsBody.querySelectorAll(".booking-card")]
+      .filter((card) => card.querySelector(".booking-extra")?.open)
+      .map((card) => card.dataset.bookingId));
     bookingsBody.replaceChildren();
-    emptyBookings.classList.toggle("hidden", bookings.length > 0);
-    bookings.forEach((booking) => {
-      const row = document.createElement("tr");
-      row.dataset.bookingId = booking.id;
-      const dateCell = appendTextCell(row, formatDate(booking.event_date));
+    [...bookings].sort((a, b) => a.event_date.localeCompare(b.event_date) || String(a.id).localeCompare(String(b.id)))
+      .forEach((booking) => {
+      const status = statusOptions.includes(booking.status) ? booking.status : "new";
+      const card = make("article", "booking-card");
+      card.dataset.bookingId = booking.id;
+      card.dataset.status = status;
+
+      const date = localDate(booking.event_date);
+      const dateBlock = make("div", "booking-date");
+      dateBlock.append(make("strong", "", String(date.getDate()).padStart(2, "0")));
+      dateBlock.append(make("span", "", date.toLocaleDateString(undefined, { month: "short" }).toUpperCase()));
+      dateBlock.append(make("small", "", booking.event_time || ""));
+
+      const info = make("div", "booking-info");
+      info.append(make("h3", "", booking.name || ""));
+      info.append(make("p", "booking-meta", `${booking.package || ""} · ${booking.event || ""}`));
+      info.append(make("p", "booking-contact", `${booking.phone || ""} · ${booking.email || ""}`));
+      info.append(make("p", "booking-location", booking.location || ""));
       if (hasDateConflict(booking.event_date)) {
-        const warning = document.createElement("span");
-        warning.className = "date-conflict";
-        warning.textContent = "⚠ Date conflict";
-        dateCell.append(warning);
+        info.append(make("span", "date-conflict", "⚠ Date conflict"));
       }
-      const clientCell = appendTextCell(row, booking.name);
-      const email = document.createElement("a");
-      email.href = `mailto:${encodeURIComponent(booking.email || "")}`;
-      email.textContent = booking.email || "";
-      email.className = "subtext";
-      clientCell.append(email);
-      appendTextCell(row, booking.package);
-      appendTextCell(row, formatPhp(booking.total_price));
-      const depositCell = document.createElement("td");
+
+      const side = make("div", "booking-side");
+      const select = make("select", "status-select");
+      select.setAttribute("aria-label", `Status for ${booking.name || "booking"}`);
+      statusOptions.forEach((optionStatus) => {
+        const option = make("option", "", optionStatus[0].toUpperCase() + optionStatus.slice(1));
+        option.value = optionStatus;
+        select.append(option);
+      });
+      select.value = status;
+      side.append(select);
+      const actions = make("div", "row-actions");
+      const deleteButton = make("button", "button button-danger delete-booking", "Delete");
+      deleteButton.type = "button";
+      actions.append(deleteButton);
+      side.append(actions);
+
+      const details = make("details", "booking-extra");
+      details.open = openDetails.has(String(booking.id));
+      const summary = make("summary", "");
+      const balance = Number(booking.balance_due);
+      const depositAmountValue = Number(booking.deposit_amount || 0);
+      const paymentBadge = booking.total_price == null || booking.balance_due == null || !booking.deposit_paid
+        ? { cls: "is-pending", label: "Deposit pending" }
+        : balance <= 0 ? { cls: "is-paid", label: "Paid in full" }
+          : { cls: "is-due", label: "Balance due" };
+      summary.append(make("span", "pay-summary", `${formatPhp(booking.total_price)} · Deposit ${formatPhp(depositAmountValue)} ${booking.deposit_paid ? "paid" : "unpaid"} · Balance ${formatPhp(booking.balance_due)}`));
+      summary.append(make("span", `pay-badge ${paymentBadge.cls}`, paymentBadge.label));
+      details.append(summary);
+      const grid = make("div", "extra-grid");
+
+      const payment = make("div", "extra-group");
+      payment.append(make("h4", "", "Payment"));
+      payment.append(make("p", "", `Total price: ${formatPhp(booking.total_price)}`));
       const depositAmount = document.createElement("input");
       depositAmount.type = "number";
       depositAmount.min = "0";
       depositAmount.step = "0.01";
       depositAmount.className = "deposit-amount";
       depositAmount.value = booking.deposit_amount ?? 0;
-      depositAmount.setAttribute("aria-label", `Deposit amount for ${booking.name}`);
+      depositAmount.setAttribute("aria-label", `Deposit amount for ${booking.name || "booking"}`);
+      payment.append(depositAmount);
       const paidLabel = document.createElement("label");
       paidLabel.className = "paid-toggle";
       const paid = document.createElement("input");
       paid.type = "checkbox";
-      paid.className = "deposit-paid";
+      paid.className = "deposit-paid paid-toggle";
       paid.checked = Boolean(booking.deposit_paid);
       paidLabel.append(paid, document.createTextNode(" Paid"));
       const savePayment = document.createElement("button");
       savePayment.type = "button";
       savePayment.className = "button save-payment";
       savePayment.textContent = "Save";
-      depositCell.append(depositAmount, paidLabel, savePayment);
-      row.append(depositCell);
-      appendTextCell(row, formatPhp(booking.balance_due));
-      const eventCell = appendTextCell(row, booking.event);
-      const time = document.createElement("span");
-      time.className = "subtext";
-      time.textContent = booking.event_time || "";
-      eventCell.append(time);
-      const contactCell = appendTextCell(row, booking.phone);
-      const location = document.createElement("span");
-      location.className = "subtext";
-      location.textContent = booking.location || "";
-      contactCell.append(location);
+      payment.append(paidLabel, savePayment);
+      const balanceBox = make("div", "balance-box");
+      balanceBox.append(make("span", "", "Balance due"), make("strong", "", formatPhp(booking.balance_due)));
+      payment.append(balanceBox);
+      grid.append(payment);
 
-      const notesCell = document.createElement("td");
-      const notesInput = document.createElement("textarea");
-      notesInput.className = "booking-notes";
-      notesInput.setAttribute("aria-label", `Admin notes for ${booking.name}`);
-      notesInput.value = booking.notes || "";
-      const saveNotes = document.createElement("button");
-      saveNotes.type = "button";
-      saveNotes.className = "button save-notes";
-      saveNotes.textContent = "Save notes";
-      notesCell.append(notesInput, saveNotes);
-      row.append(notesCell);
-
-      const deliveryCell = document.createElement("td");
+      const delivery = make("div", "extra-group");
+      delivery.append(make("h4", "", "Delivery"));
       const deliveryInput = document.createElement("input");
       deliveryInput.type = "url";
       deliveryInput.className = "delivery-url";
       deliveryInput.placeholder = "https://drive.google.com/…";
       deliveryInput.value = booking.delivery_url || "";
-      deliveryInput.setAttribute("aria-label", `Google Drive delivery link for ${booking.name}`);
-      const saveDelivery = document.createElement("button");
+      deliveryInput.setAttribute("aria-label", `Google Drive delivery link for ${booking.name || "booking"}`);
+      delivery.append(deliveryInput);
+      const saveDelivery = make("button", "button save-delivery", "Save link");
       saveDelivery.type = "button";
-      saveDelivery.className = "button save-delivery";
-      saveDelivery.textContent = "Save link";
-      deliveryCell.append(deliveryInput, saveDelivery);
+      delivery.append(saveDelivery);
       if (booking.delivery_url && isDriveUrl(booking.delivery_url)) {
-        const openLink = document.createElement("a");
+        const openLink = make("a", "subtext", "Open gallery");
         openLink.href = booking.delivery_url;
         openLink.target = "_blank";
         openLink.rel = "noopener noreferrer";
-        openLink.textContent = "Open gallery";
-        openLink.className = "subtext";
-        deliveryCell.append(openLink);
+        delivery.append(openLink);
       }
-      row.append(deliveryCell);
+      grid.append(delivery);
 
-      const statusCell = document.createElement("td");
-      const select = document.createElement("select");
-      select.className = "status-select";
-      select.setAttribute("aria-label", `Status for ${booking.name}`);
-      statusOptions.forEach((status) => {
-        const option = document.createElement("option");
-        option.value = status;
-        option.textContent = status[0].toUpperCase() + status.slice(1);
-        select.append(option);
-      });
-      select.value = booking.status;
-      statusCell.append(select);
-      row.append(statusCell);
+      const notesGroup = make("div", "extra-group wide");
+      notesGroup.append(make("h4", "", "Notes"));
+      const notesInput = document.createElement("textarea");
+      notesInput.className = "booking-notes";
+      notesInput.setAttribute("aria-label", `Admin notes for ${booking.name || "booking"}`);
+      notesInput.value = booking.notes || "";
+      const saveNotes = document.createElement("button");
+      saveNotes.type = "button";
+      saveNotes.className = "button save-notes";
+      saveNotes.textContent = "Save notes";
+      notesGroup.append(notesInput, saveNotes);
+      grid.append(notesGroup);
+      details.append(grid);
 
-      const actionsCell = document.createElement("td");
-      const actions = document.createElement("div");
-      actions.className = "row-actions";
-      const deleteButton = document.createElement("button");
-      deleteButton.type = "button";
-      deleteButton.className = "button button-danger delete-booking";
-      deleteButton.textContent = "Delete";
-      actions.append(deleteButton);
-      actionsCell.append(actions);
-      row.append(actionsCell);
-      bookingsBody.append(row);
+      card.append(dateBlock, info, side, details);
+      bookingsBody.append(card);
     });
+    applyBookingFilters();
   }
 
   function renderCalendar() {
@@ -348,7 +375,7 @@
 
   bookingsBody.addEventListener("change", async (event) => {
     if (!event.target.matches(".status-select")) return;
-    const row = event.target.closest("tr");
+    const row = event.target.closest(".booking-card");
     const bookingId = row.dataset.bookingId;
     const previous = bookings.find((item) => item.id === bookingId)?.status;
     const nextStatus = event.target.value;
@@ -362,15 +389,17 @@
     }
     const booking = bookings.find((item) => item.id === bookingId);
     booking.status = nextStatus;
+    row.dataset.status = nextStatus;
     dashboardMessage.textContent = "Status saved.";
     renderStats();
     renderCalendar();
+    applyBookingFilters();
   });
 
   bookingsBody.addEventListener("click", async (event) => {
     const deliveryButton = event.target.closest(".save-delivery");
     if (deliveryButton) {
-      const row = deliveryButton.closest("tr");
+      const row = deliveryButton.closest(".booking-card");
       const booking = bookings.find((item) => item.id === row.dataset.bookingId);
       const rawUrl = row.querySelector(".delivery-url").value.trim();
       const deliveryUrl = rawUrl || null;
@@ -392,7 +421,7 @@
     }
     const paymentButton = event.target.closest(".save-payment");
     if (paymentButton) {
-      const row = paymentButton.closest("tr");
+      const row = paymentButton.closest(".booking-card");
       const booking = bookings.find((item) => item.id === row.dataset.bookingId);
       const depositAmount = Number(row.querySelector(".deposit-amount").value);
       const depositPaid = row.querySelector(".deposit-paid").checked;
@@ -416,7 +445,7 @@
     }
     const notesButton = event.target.closest(".save-notes");
     if (notesButton) {
-      const row = notesButton.closest("tr");
+      const row = notesButton.closest(".booking-card");
       const booking = bookings.find((item) => item.id === row.dataset.bookingId);
       const notes = row.querySelector(".booking-notes").value;
       notesButton.disabled = true;
@@ -432,7 +461,7 @@
     }
     const button = event.target.closest(".delete-booking");
     if (!button) return;
-    const row = button.closest("tr");
+    const row = button.closest(".booking-card");
     const booking = bookings.find((item) => item.id === row.dataset.bookingId);
     if (!booking || !window.confirm(`Delete the booking for ${booking.name}? This cannot be undone.`)) return;
     button.disabled = true;
@@ -451,6 +480,18 @@
 
   document.getElementById("bookingsTab").addEventListener("click", () => setTab("bookings"));
   document.getElementById("calendarTab").addEventListener("click", () => setTab("calendar"));
+  bookingFilters.addEventListener("click", (event) => {
+    const pill = event.target.closest(".filter-pill");
+    if (!pill) return;
+    activeBookingFilter = pill.dataset.filter;
+    bookingFilters.querySelectorAll(".filter-pill").forEach((button) => {
+      const active = button === pill;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    applyBookingFilters();
+  });
+  bookingSearch.addEventListener("input", applyBookingFilters);
   document.getElementById("previousMonth").addEventListener("click", () => { month = new Date(month.getFullYear(), month.getMonth() - 1, 1); renderCalendar(); });
   document.getElementById("nextMonth").addEventListener("click", () => { month = new Date(month.getFullYear(), month.getMonth() + 1, 1); renderCalendar(); });
   calendarGrid.addEventListener("click", (event) => {
