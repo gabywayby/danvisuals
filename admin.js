@@ -31,6 +31,12 @@
   const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   const formatDate = (value) => localDate(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   const formatPhp = (value) => value == null ? "—" : new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 2 }).format(Number(value));
+  const isDriveUrl = (value) => {
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:" && url.hostname === "drive.google.com";
+    } catch { return false; }
+  };
   const activeBookingsForDate = (value) => bookings.filter((item) => item.event_date === value && item.status !== "cancelled");
   const hasDateConflict = (value) => activeBookingsForDate(value).length > 1;
   const appendTextCell = (row, value, className = "") => {
@@ -120,6 +126,29 @@
       saveNotes.textContent = "Save notes";
       notesCell.append(notesInput, saveNotes);
       row.append(notesCell);
+
+      const deliveryCell = document.createElement("td");
+      const deliveryInput = document.createElement("input");
+      deliveryInput.type = "url";
+      deliveryInput.className = "delivery-url";
+      deliveryInput.placeholder = "https://drive.google.com/…";
+      deliveryInput.value = booking.delivery_url || "";
+      deliveryInput.setAttribute("aria-label", `Google Drive delivery link for ${booking.name}`);
+      const saveDelivery = document.createElement("button");
+      saveDelivery.type = "button";
+      saveDelivery.className = "button save-delivery";
+      saveDelivery.textContent = "Save link";
+      deliveryCell.append(deliveryInput, saveDelivery);
+      if (booking.delivery_url && isDriveUrl(booking.delivery_url)) {
+        const openLink = document.createElement("a");
+        openLink.href = booking.delivery_url;
+        openLink.target = "_blank";
+        openLink.rel = "noopener noreferrer";
+        openLink.textContent = "Open gallery";
+        openLink.className = "subtext";
+        deliveryCell.append(openLink);
+      }
+      row.append(deliveryCell);
 
       const statusCell = document.createElement("td");
       const select = document.createElement("select");
@@ -278,7 +307,7 @@
     const allBookings = [];
     for (let start = 0; ; start += 1000) {
       const { data, error } = await client.from("bookings")
-        .select("id, created_at, package, name, phone, email, event, event_date, event_time, location, payment, status, notes, total_price, deposit_amount, deposit_paid, balance_due")
+        .select("id, created_at, package, name, phone, email, event, event_date, event_time, location, payment, status, notes, total_price, deposit_amount, deposit_paid, balance_due, delivery_url")
         .order("event_date", { ascending: true }).range(start, start + 999);
       if (error) {
         dashboardMessage.textContent = "Couldn’t load bookings. Check the Supabase setup and admin access.";
@@ -338,6 +367,28 @@
   });
 
   bookingsBody.addEventListener("click", async (event) => {
+    const deliveryButton = event.target.closest(".save-delivery");
+    if (deliveryButton) {
+      const row = deliveryButton.closest("tr");
+      const booking = bookings.find((item) => item.id === row.dataset.bookingId);
+      const rawUrl = row.querySelector(".delivery-url").value.trim();
+      const deliveryUrl = rawUrl || null;
+      if (deliveryUrl && !isDriveUrl(deliveryUrl)) {
+        dashboardMessage.textContent = "Enter a valid HTTPS Google Drive link.";
+        return;
+      }
+      deliveryButton.disabled = true;
+      const { error } = await client.from("bookings").update({ delivery_url: deliveryUrl }).eq("id", booking.id);
+      deliveryButton.disabled = false;
+      if (error) {
+        dashboardMessage.textContent = "Gallery link couldn’t be saved.";
+        return;
+      }
+      booking.delivery_url = deliveryUrl;
+      dashboardMessage.textContent = "Gallery link saved.";
+      renderTable();
+      return;
+    }
     const paymentButton = event.target.closest(".save-payment");
     if (paymentButton) {
       const row = paymentButton.closest("tr");
@@ -463,7 +514,8 @@
       ["phone", "Phone"], ["email", "Email"], ["event", "Event"], ["event_date", "Event date"],
       ["event_time", "Event time"], ["location", "Location"], ["payment", "Payment method"],
       ["status", "Status"], ["notes", "Admin notes"], ["total_price", "Total price"],
-      ["deposit_amount", "Deposit amount"], ["deposit_paid", "Deposit paid"], ["balance_due", "Balance due"]
+      ["deposit_amount", "Deposit amount"], ["deposit_paid", "Deposit paid"], ["balance_due", "Balance due"],
+      ["delivery_url", "Gallery delivery link"]
     ];
     const csvCell = (value) => {
       let text = value == null ? "" : String(value);
