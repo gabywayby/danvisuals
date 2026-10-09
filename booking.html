@@ -49,7 +49,20 @@
           <option>Maternity</option><option>Engagement</option><option>Other</option>
         </select>
       </label>
-      <label>Event date<input name="date" type="date" required></label>
+      <div class="booking-date-field full-field">
+        <label for="eventDate">Event date</label>
+        <input id="eventDate" name="date" type="date" required>
+        <p class="availability-help" id="availabilityMessage" role="status" aria-live="polite">Loading date availability…</p>
+        <div class="availability-calendar" aria-label="Event date availability">
+          <div class="availability-toolbar">
+            <button type="button" id="availabilityPrevious" aria-label="Previous month">‹</button>
+            <h2 id="availabilityMonth"></h2>
+            <button type="button" id="availabilityNext" aria-label="Next month">›</button>
+          </div>
+          <div class="availability-grid" id="availabilityGrid" role="grid" aria-label="Choose an event date"></div>
+          <div class="availability-legend"><span class="legend-open">Available</span><span class="legend-taken">Taken / unavailable</span></div>
+        </div>
+      </div>
       <label>Event time<input name="time" type="time" required></label>
       <label class="full-field">Event location<input name="location" type="text" placeholder="Venue, city, or address" required></label>
       <label class="full-field">Preferred mode of payment
