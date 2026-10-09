@@ -126,13 +126,10 @@
       const details = make("details", "booking-extra");
       details.open = openDetails.has(String(booking.id));
       const summary = make("summary", "");
-      const balance = Number(booking.balance_due);
-      const depositAmountValue = Number(booking.deposit_amount || 0);
-      const paymentBadge = booking.total_price == null || booking.balance_due == null || !booking.deposit_paid
-        ? { cls: "is-pending", label: "Deposit pending" }
-        : balance <= 0 ? { cls: "is-paid", label: "Paid in full" }
-          : { cls: "is-due", label: "Balance due" };
-      summary.append(make("span", "pay-summary", `${formatPhp(booking.total_price)} · Deposit ${formatPhp(depositAmountValue)} ${booking.deposit_paid ? "paid" : "unpaid"} · Balance ${formatPhp(booking.balance_due)}`));
+      const paymentBadge = booking.deposit_paid
+        ? { cls: "is-paid", label: "Paid" }
+        : { cls: "is-due", label: "Unpaid" };
+      summary.append(make("span", "pay-summary", formatPhp(booking.total_price)));
       summary.append(make("span", `pay-badge ${paymentBadge.cls}`, paymentBadge.label));
       details.append(summary);
       const grid = make("div", "extra-grid");
@@ -140,19 +137,11 @@
       const payment = make("div", "extra-group");
       payment.append(make("h4", "", "Payment"));
       payment.append(make("p", "", `Total price: ${formatPhp(booking.total_price)}`));
-      const depositAmount = document.createElement("input");
-      depositAmount.type = "number";
-      depositAmount.min = "0";
-      depositAmount.step = "0.01";
-      depositAmount.className = "deposit-amount";
-      depositAmount.value = booking.deposit_amount ?? 0;
-      depositAmount.setAttribute("aria-label", `Deposit amount for ${booking.name || "booking"}`);
-      payment.append(depositAmount);
       const paidLabel = document.createElement("label");
       paidLabel.className = "paid-toggle";
       const paid = document.createElement("input");
       paid.type = "checkbox";
-      paid.className = "deposit-paid paid-toggle";
+      paid.className = "deposit-paid";
       paid.checked = Boolean(booking.deposit_paid);
       paidLabel.append(paid, document.createTextNode(" Paid"));
       const savePayment = document.createElement("button");
@@ -160,9 +149,6 @@
       savePayment.className = "button save-payment";
       savePayment.textContent = "Save";
       payment.append(paidLabel, savePayment);
-      const balanceBox = make("div", "balance-box");
-      balanceBox.append(make("span", "", "Balance due"), make("strong", "", formatPhp(booking.balance_due)));
-      payment.append(balanceBox);
       grid.append(payment);
 
       const delivery = make("div", "extra-group");
@@ -335,7 +321,7 @@
     const allBookings = [];
     for (let start = 0; ; start += 1000) {
       const { data, error } = await client.from("bookings")
-        .select("id, created_at, package, name, phone, email, event, event_date, event_time, location, payment, status, notes, total_price, deposit_amount, deposit_paid, balance_due, delivery_url")
+        .select("id, created_at, package, name, phone, email, event, event_date, event_time, location, payment, status, notes, total_price, deposit_paid, balance_due, delivery_url")
         .order("event_date", { ascending: true }).order("id", { ascending: true }).range(start, start + 999);
       if (error) {
         dashboardMessage.textContent = "Couldn’t load bookings. Check the Supabase setup and admin access.";
@@ -423,23 +409,18 @@
     if (paymentButton) {
       const row = paymentButton.closest(".booking-card");
       const booking = bookings.find((item) => item.id === row.dataset.bookingId);
-      const depositAmount = Number(row.querySelector(".deposit-amount").value);
       const depositPaid = row.querySelector(".deposit-paid").checked;
-      if (!Number.isFinite(depositAmount) || depositAmount < 0) {
-        dashboardMessage.textContent = "Enter a valid non-negative deposit amount.";
-        return;
-      }
       paymentButton.disabled = true;
       const { data, error } = await client.from("bookings")
-        .update({ deposit_amount: depositAmount, deposit_paid: depositPaid })
-        .eq("id", booking.id).select("deposit_amount, deposit_paid, balance_due").single();
+        .update({ deposit_paid: depositPaid })
+        .eq("id", booking.id).select("deposit_paid, balance_due").single();
       paymentButton.disabled = false;
       if (error) {
-        dashboardMessage.textContent = "Payment details couldn’t be saved.";
+        dashboardMessage.textContent = "Payment status couldn't be saved.";
         return;
       }
       Object.assign(booking, data);
-      dashboardMessage.textContent = "Payment details saved.";
+      dashboardMessage.textContent = "Payment status saved.";
       renderTable();
       return;
     }
@@ -556,7 +537,7 @@
       ["phone", "Phone"], ["email", "Email"], ["event", "Event"], ["event_date", "Event date"],
       ["event_time", "Event time"], ["location", "Location"], ["payment", "Payment method"],
       ["status", "Status"], ["notes", "Admin notes"], ["total_price", "Total price"],
-      ["deposit_amount", "Deposit amount"], ["deposit_paid", "Deposit paid"], ["balance_due", "Balance due"],
+      ["deposit_paid", "Paid"], ["balance_due", "Balance due"],
       ["delivery_url", "Gallery delivery link"]
     ];
     const csvCell = (value) => {

@@ -65,18 +65,15 @@
 .pay-badge { padding: 3px 9px; border-radius: 999px; font: 600 .75rem var(--body); }
 .pay-badge.is-paid { color: var(--green, #347a4b); background: #347a4b18; }
 .pay-badge.is-due { color: #8a5b0b; background: #d9911622; }
-.pay-badge.is-pending { color: var(--muted, #7a746c); background: #7a7a7a18; }
 .extra-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; padding-top: 16px; }
 .extra-group { display: grid; align-content: start; gap: 9px; }
 .extra-group h4 { margin: 0; font: 500 1.15rem var(--head); }
 .extra-group p { margin: 0; }
 .extra-group.wide { grid-column: 1 / -1; }
 .extra-group textarea { min-height: 90px; resize: vertical; }
-.balance-box { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; background: #1a1a1a08; }
 .booking-card .row-actions { justify-content: flex-end; }
 .booking-card .paid-toggle { display: flex; align-items: center; gap: 8px; }
 .booking-card .paid-toggle input { width: auto; min-height: 0; }
-.booking-card input.paid-toggle { display: inline-block; margin: 0; }
 @media (max-width: 680px) {
   .booking-card { grid-template-columns: 58px minmax(0, 1fr); gap: 12px; padding: 14px; }
   .booking-date { grid-row: span 2; }
