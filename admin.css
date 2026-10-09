@@ -140,6 +140,7 @@ td .subtext { display: block; color: var(--muted); font-size: .9em; }
   .calendar-toolbar { gap: 12px; } .calendar-toolbar h2 { min-width: 160px; font-size: 1.45rem; }
   .tab-button { padding: 10px 14px; }
 }
+
 @media (max-width: 480px) {
   body { font-size: 16px; }
   .admin-header { min-height: 62px; } .admin-brand span { display: none; }
@@ -149,3 +150,39 @@ td .subtext { display: block; color: var(--muted); font-size: .9em; }
   .row-actions { flex-direction: column; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+
+/* ===== Clean, uniform layout (equal heights everywhere) ===== */
+:root { --r: 6px; --ctl: 44px; }
+input, select, .button { height: var(--ctl); border-radius: var(--r); }
+textarea { border-radius: var(--r); }
+.paid-toggle input { height: auto; width: auto; }
+.row-actions .button, .day-booking-actions .button { height: 36px; min-height: 0; padding-top: 0; padding-bottom: 0; }
+.admin-main { padding-top: 40px; }
+
+/* Stat cards: identical size */
+.stats-grid { grid-auto-rows: 1fr; }
+.stat-card { height: 104px; align-content: center; border-radius: var(--r); box-shadow: none; }
+.stat-card:hover { transform: none; }
+
+/* Blocked dates: one tidy row */
+.blocked-panel { align-items: center; border-radius: var(--r); box-shadow: none; }
+.blocked-date-form { align-items: center; position: relative; }
+.blocked-date-list li { height: 32px; }
+
+/* Calendar: fixed header row + 6 equal rows, nothing can stretch a cell */
+.calendar-grid { grid-template-rows: 40px repeat(6, 112px); border-radius: var(--r); box-shadow: none; overflow: hidden; }
+.calendar-day { display: flex; flex-direction: column; align-items: stretch; gap: 3px; height: 100%; min-height: 0; padding: 6px; overflow: hidden; }
+.day-number { align-self: flex-start; margin: 0 0 2px; flex: none; }
+.booking-chip { flex: none; height: 20px; margin: 0; padding: 0 6px; line-height: 20px; }
+.calendar-conflict { flex: none; height: 16px; margin: 0; line-height: 16px; }
+.day-panel { min-height: 0; border-radius: var(--r); box-shadow: none; }
+
+@media (max-width: 760px) {
+  .calendar-grid { grid-template-rows: 32px repeat(6, 72px); }
+  .calendar-day { padding: 4px 3px; }
+  .stat-card { height: 88px; }
+}
+
+/* ===== Fix: buttons never wrap or clip their text ===== */
+.button { white-space: nowrap; flex: none; width: auto; padding-left: 22px; padding-right: 22px; }
+.blocked-date-form .button { min-width: 112px; }

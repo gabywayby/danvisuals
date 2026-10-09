@@ -61,16 +61,7 @@
   transition: transform .18s ease;
 }
 .booking-extra[open] summary::after { transform: rotate(225deg) translate(-2px, -1px); }
-.pay-summary { color: var(--muted, #7a746c); }
 .pay-badge { padding: 3px 9px; border-radius: 999px; font: 600 .75rem var(--body); }
-.pay-badge.is-paid { color: var(--green, #347a4b); background: #347a4b18; }
-.pay-badge.is-due { color: #8a5b0b; background: #d9911622; }
-.extra-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; padding-top: 16px; }
-.extra-group { display: grid; align-content: start; gap: 9px; }
-.extra-group h4 { margin: 0; font: 500 1.15rem var(--head); }
-.extra-group p { margin: 0; }
-.extra-group.wide { grid-column: 1 / -1; }
-.extra-group textarea { min-height: 90px; resize: vertical; }
 .booking-card .row-actions { justify-content: flex-end; }
 .booking-card .paid-toggle { display: flex; align-items: center; gap: 8px; }
 .booking-card .paid-toggle input { width: auto; min-height: 0; }
@@ -80,7 +71,50 @@
   .booking-side { grid-column: 2; flex-wrap: wrap; }
   .booking-extra { grid-column: 1 / -1; }
   .booking-side .status-select { min-width: 0; width: auto; flex: 1 1 150px; }
-  .extra-grid { grid-template-columns: 1fr; }
-  .extra-group.wide { grid-column: auto; }
   .filter-bar input[type="search"] { flex-basis: 100%; margin-left: 0; }
+}
+
+/* ===== Uniform booking cards ===== */
+.booking-list { gap: 12px; }
+.booking-card { grid-template-columns: 84px minmax(0, 1fr) 220px; align-items: center; padding: 16px 20px; border-radius: 6px; box-shadow: none; }
+.booking-card:hover { box-shadow: none; border-color: #cfc9c0; }
+.booking-date { align-content: center; width: 84px; height: 92px; border-radius: 6px; }
+.booking-info { display: grid; gap: 2px; min-width: 0; }
+.booking-info h3, .booking-info p { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.booking-side { display: grid; width: 220px; justify-items: stretch; }
+.booking-side .status-select { width: 100%; height: 40px; }
+.booking-side .row-actions { justify-content: stretch; }
+.booking-side .row-actions .button { flex: 1; }
+.booking-extra summary { min-height: 44px; }
+.pay-badge { height: 24px; line-height: 24px; padding: 0 12px; }
+.filter-bar .filter-pill { height: 36px; padding: 0 16px; }
+.filter-bar input[type="search"] { height: 36px; }
+
+@media (max-width: 760px) {
+  .booking-card { grid-template-columns: 64px minmax(0, 1fr); padding: 14px; }
+  .booking-date { width: 64px; height: 76px; }
+  .booking-side { width: auto; grid-column: 1 / -1; grid-template-columns: 1fr auto; align-items: center; }
+}
+
+/* ===== Payment / Delivery / Notes panel: compact, boxed, aligned ===== */
+.booking-extra summary:focus { outline: none; }
+.booking-extra summary:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.pay-summary { color: var(--ink); font-weight: 600; font-size: 1.05rem; }
+.pay-badge { margin-right: 4px; font-weight: 700; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+.pay-badge.is-paid { color: #fff; background: var(--green); }
+.pay-badge.is-due { color: #6b4708; background: #f3e3c2; }
+
+.extra-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 6px 0 4px; }
+.extra-grid .wide { grid-column: 1 / -1; }
+.extra-group { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: start; align-items: center; gap: 10px 12px; padding: 16px 18px; background: #fff; border: 1px solid var(--line); border-radius: 6px; }
+.extra-group > h4 { grid-column: 1 / -1; margin: 0; color: var(--gold); font: 700 .72rem var(--body); letter-spacing: .16em; text-transform: uppercase; }
+.extra-group > p, .extra-group > textarea, .extra-group > a { grid-column: 1 / -1; margin: 0; }
+.extra-group > p { font-size: 1.1rem; font-weight: 600; }
+.extra-group .paid-toggle { margin: 0; }
+.extra-group .button { height: 36px; min-height: 0; padding: 0 18px; font-size: .75rem; }
+.extra-group.wide textarea { min-height: 84px; }
+.extra-group.wide .button { grid-column: 1 / -1; justify-self: end; }
+
+@media (max-width: 760px) {
+  .extra-grid { grid-template-columns: 1fr; }
 }
