@@ -25,6 +25,7 @@
   };
   const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   const formatDate = (value) => localDate(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  const formatPhp = (value) => value == null ? "—" : new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 2 }).format(Number(value));
   const appendTextCell = (row, value, className = "") => {
     const cell = document.createElement("td");
     if (className) cell.className = className;
@@ -61,6 +62,29 @@
       email.className = "subtext";
       clientCell.append(email);
       appendTextCell(row, booking.package);
+      appendTextCell(row, formatPhp(booking.total_price));
+      const depositCell = document.createElement("td");
+      const depositAmount = document.createElement("input");
+      depositAmount.type = "number";
+      depositAmount.min = "0";
+      depositAmount.step = "0.01";
+      depositAmount.className = "deposit-amount";
+      depositAmount.value = booking.deposit_amount ?? 0;
+      depositAmount.setAttribute("aria-label", `Deposit amount for ${booking.name}`);
+      const paidLabel = document.createElement("label");
+      paidLabel.className = "paid-toggle";
+      const paid = document.createElement("input");
+      paid.type = "checkbox";
+      paid.className = "deposit-paid";
+      paid.checked = Boolean(booking.deposit_paid);
+      paidLabel.append(paid, document.createTextNode(" Paid"));
+      const savePayment = document.createElement("button");
+      savePayment.type = "button";
+      savePayment.className = "button save-payment";
+      savePayment.textContent = "Save";
+      depositCell.append(depositAmount, paidLabel, savePayment);
+      row.append(depositCell);
+      appendTextCell(row, formatPhp(booking.balance_due));
       const eventCell = appendTextCell(row, booking.event);
       const time = document.createElement("span");
       time.className = "subtext";
@@ -149,7 +173,7 @@
   async function loadBookings() {
     dashboardMessage.textContent = "Loading bookings…";
     const { data, error } = await client.from("bookings")
-      .select("id, created_at, package, name, phone, email, event, event_date, event_time, location, payment, status, notes")
+      .select("id, created_at, package, name, phone, email, event, event_date, event_time, location, payment, status, notes, total_price, deposit_amount, deposit_paid, balance_due")
       .order("event_date", { ascending: true });
     if (error) {
       dashboardMessage.textContent = "Couldn’t load bookings. Check the Supabase setup and admin access.";
@@ -205,6 +229,30 @@
   });
 
   bookingsBody.addEventListener("click", async (event) => {
+    const paymentButton = event.target.closest(".save-payment");
+    if (paymentButton) {
+      const row = paymentButton.closest("tr");
+      const booking = bookings.find((item) => item.id === row.dataset.bookingId);
+      const depositAmount = Number(row.querySelector(".deposit-amount").value);
+      const depositPaid = row.querySelector(".deposit-paid").checked;
+      if (!Number.isFinite(depositAmount) || depositAmount < 0) {
+        dashboardMessage.textContent = "Enter a valid non-negative deposit amount.";
+        return;
+      }
+      paymentButton.disabled = true;
+      const { data, error } = await client.from("bookings")
+        .update({ deposit_amount: depositAmount, deposit_paid: depositPaid })
+        .eq("id", booking.id).select("deposit_amount, deposit_paid, balance_due").single();
+      paymentButton.disabled = false;
+      if (error) {
+        dashboardMessage.textContent = "Payment details couldn’t be saved.";
+        return;
+      }
+      Object.assign(booking, data);
+      dashboardMessage.textContent = "Payment details saved.";
+      renderTable();
+      return;
+    }
     const notesButton = event.target.closest(".save-notes");
     if (notesButton) {
       const row = notesButton.closest("tr");

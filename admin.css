@@ -40,6 +40,7 @@ td .subtext { display: block; color: var(--muted); font-size: .9em; }
 .row-actions { display: flex; gap: 6px; }
 .row-actions .button { padding: 5px 9px; min-height: 34px; }
 .status-select { min-width: 132px; padding: 6px; }
+.deposit-amount { min-width: 105px; }.paid-toggle { display: flex; align-items: center; gap: 4px; margin: 6px 0; white-space: nowrap; }.paid-toggle input { width: auto; min-height: auto; }
 .empty-state { padding: 30px; text-align: center; color: var(--muted); }
 .calendar-toolbar { display: flex; justify-content: center; align-items: center; gap: 24px; margin: 4px 0 20px; }
 .calendar-toolbar h2 { min-width: 220px; text-align: center; font-size: 1.8rem; }
