@@ -31,6 +31,8 @@
   const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   const formatDate = (value) => localDate(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   const formatPhp = (value) => value == null ? "—" : new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 2 }).format(Number(value));
+  const activeBookingsForDate = (value) => bookings.filter((item) => item.event_date === value && item.status !== "cancelled");
+  const hasDateConflict = (value) => activeBookingsForDate(value).length > 1;
   const appendTextCell = (row, value, className = "") => {
     const cell = document.createElement("td");
     if (className) cell.className = className;
@@ -59,7 +61,13 @@
     bookings.forEach((booking) => {
       const row = document.createElement("tr");
       row.dataset.bookingId = booking.id;
-      appendTextCell(row, formatDate(booking.event_date));
+      const dateCell = appendTextCell(row, formatDate(booking.event_date));
+      if (hasDateConflict(booking.event_date)) {
+        const warning = document.createElement("span");
+        warning.className = "date-conflict";
+        warning.textContent = "⚠ Date conflict";
+        dateCell.append(warning);
+      }
       const clientCell = appendTextCell(row, booking.name);
       const email = document.createElement("a");
       email.href = `mailto:${encodeURIComponent(booking.email || "")}`;
@@ -168,7 +176,14 @@
       number.className = "day-number";
       number.textContent = date.getDate();
       day.append(number);
-      bookings.filter((booking) => booking.event_date === key).forEach((booking) => {
+      const dayBookings = bookings.filter((booking) => booking.event_date === key);
+      if (dayBookings.filter((booking) => booking.status !== "cancelled").length > 1) {
+        const warning = document.createElement("span");
+        warning.className = "calendar-conflict";
+        warning.textContent = "Date conflict";
+        day.append(warning);
+      }
+      dayBookings.forEach((booking) => {
         const chip = document.createElement("span");
         chip.className = `booking-chip status-${statusOptions.includes(booking.status) ? booking.status : "new"}`;
         chip.textContent = booking.name;
@@ -186,6 +201,12 @@
     heading.textContent = selectedDay ? formatDate(selectedDay) : "Select a date";
     selectedDayPanel.append(heading);
     const dayBookings = bookings.filter((booking) => booking.event_date === selectedDay);
+    if (hasDateConflict(selectedDay)) {
+      const warning = document.createElement("p");
+      warning.className = "date-conflict panel-conflict";
+      warning.textContent = "⚠ Multiple non-cancelled bookings share this date.";
+      selectedDayPanel.append(warning);
+    }
     if (!dayBookings.length) {
       const empty = document.createElement("p");
       empty.className = "day-panel-empty";
