@@ -50,8 +50,7 @@
       event_date: values.get("date"),
       event_time: values.get("time"),
       location: values.get("location").trim(),
-      payment: values.get("payment"),
-      status: "new"
+      payment: values.get("payment")
     };
 
     button.disabled = true;
@@ -65,6 +64,7 @@
       button.disabled = false;
     }
     if (error) {
+      console.error("Booking insert failed:", error);
       if (error.message?.includes("This date is unavailable")) {
         status.textContent = "That date is unavailable. Please choose another date.";
         blockedDates.add(dateField.value);
