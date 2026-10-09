@@ -72,6 +72,18 @@
       location.textContent = booking.location || "";
       contactCell.append(location);
 
+      const notesCell = document.createElement("td");
+      const notesInput = document.createElement("textarea");
+      notesInput.className = "booking-notes";
+      notesInput.setAttribute("aria-label", `Admin notes for ${booking.name}`);
+      notesInput.value = booking.notes || "";
+      const saveNotes = document.createElement("button");
+      saveNotes.type = "button";
+      saveNotes.className = "button save-notes";
+      saveNotes.textContent = "Save notes";
+      notesCell.append(notesInput, saveNotes);
+      row.append(notesCell);
+
       const statusCell = document.createElement("td");
       const select = document.createElement("select");
       select.className = "status-select";
@@ -137,7 +149,7 @@
   async function loadBookings() {
     dashboardMessage.textContent = "Loading bookings…";
     const { data, error } = await client.from("bookings")
-      .select("id, created_at, package, name, phone, email, event, event_date, event_time, location, payment, status")
+      .select("id, created_at, package, name, phone, email, event, event_date, event_time, location, payment, status, notes")
       .order("event_date", { ascending: true });
     if (error) {
       dashboardMessage.textContent = "Couldn’t load bookings. Check the Supabase setup and admin access.";
@@ -193,6 +205,22 @@
   });
 
   bookingsBody.addEventListener("click", async (event) => {
+    const notesButton = event.target.closest(".save-notes");
+    if (notesButton) {
+      const row = notesButton.closest("tr");
+      const booking = bookings.find((item) => item.id === row.dataset.bookingId);
+      const notes = row.querySelector(".booking-notes").value;
+      notesButton.disabled = true;
+      const { error } = await client.from("bookings").update({ notes }).eq("id", booking.id);
+      notesButton.disabled = false;
+      if (error) {
+        dashboardMessage.textContent = "Notes couldn’t be saved.";
+        return;
+      }
+      booking.notes = notes;
+      dashboardMessage.textContent = "Notes saved.";
+      return;
+    }
     const button = event.target.closest(".delete-booking");
     if (!button) return;
     const row = button.closest("tr");
