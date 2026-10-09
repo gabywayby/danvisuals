@@ -21,7 +21,7 @@
     : null;
   let bookings = [];
   let blockedDates = [];
-  let selectedDay = dateKey(new Date());
+  let selectedDay;
   let month = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
   const localDate = (value) => {
@@ -29,6 +29,7 @@
     return new Date(year, monthNumber - 1, day);
   };
   const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  selectedDay = dateKey(new Date());
   const formatDate = (value) => localDate(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   const formatPhp = (value) => value == null ? "—" : new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 2 }).format(Number(value));
   const isDriveUrl = (value) => {
@@ -308,7 +309,7 @@
     for (let start = 0; ; start += 1000) {
       const { data, error } = await client.from("bookings")
         .select("id, created_at, package, name, phone, email, event, event_date, event_time, location, payment, status, notes, total_price, deposit_amount, deposit_paid, balance_due, delivery_url")
-        .order("event_date", { ascending: true }).range(start, start + 999);
+        .order("event_date", { ascending: true }).order("id", { ascending: true }).range(start, start + 999);
       if (error) {
         dashboardMessage.textContent = "Couldn’t load bookings. Check the Supabase setup and admin access.";
         return;

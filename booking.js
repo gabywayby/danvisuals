@@ -56,8 +56,14 @@
 
     button.disabled = true;
     status.textContent = "Sending your inquiry…";
-    const { error } = await client.from("bookings").insert(booking);
-    button.disabled = false;
+    let error;
+    try {
+      ({ error } = await client.from("bookings").insert(booking));
+    } catch {
+      error = new Error("Request failed");
+    } finally {
+      button.disabled = false;
+    }
     if (error) {
       if (error.message?.includes("This date is unavailable")) {
         status.textContent = "That date is unavailable. Please choose another date.";
