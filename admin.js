@@ -254,14 +254,19 @@
 
   async function loadBookings() {
     dashboardMessage.textContent = "Loading bookings…";
-    const { data, error } = await client.from("bookings")
-      .select("id, created_at, package, name, phone, email, event, event_date, event_time, location, payment, status, notes, total_price, deposit_amount, deposit_paid, balance_due")
-      .order("event_date", { ascending: true });
-    if (error) {
-      dashboardMessage.textContent = "Couldn’t load bookings. Check the Supabase setup and admin access.";
-      return;
+    const allBookings = [];
+    for (let start = 0; ; start += 1000) {
+      const { data, error } = await client.from("bookings")
+        .select("id, created_at, package, name, phone, email, event, event_date, event_time, location, payment, status, notes, total_price, deposit_amount, deposit_paid, balance_due")
+        .order("event_date", { ascending: true }).range(start, start + 999);
+      if (error) {
+        dashboardMessage.textContent = "Couldn’t load bookings. Check the Supabase setup and admin access.";
+        return;
+      }
+      allBookings.push(...(data || []));
+      if (!data || data.length < 1000) break;
     }
-    bookings = data || [];
+    bookings = allBookings;
     dashboardMessage.textContent = "";
     renderStats();
     renderTable();
@@ -429,6 +434,32 @@
     }
     dashboardMessage.textContent = "Date removed.";
     await loadBlockedDates();
+  });
+
+  document.getElementById("exportCsv").addEventListener("click", () => {
+    const columns = [
+      ["id", "ID"], ["created_at", "Created at"], ["package", "Package"], ["name", "Name"],
+      ["phone", "Phone"], ["email", "Email"], ["event", "Event"], ["event_date", "Event date"],
+      ["event_time", "Event time"], ["location", "Location"], ["payment", "Payment method"],
+      ["status", "Status"], ["notes", "Admin notes"], ["total_price", "Total price"],
+      ["deposit_amount", "Deposit amount"], ["deposit_paid", "Deposit paid"], ["balance_due", "Balance due"]
+    ];
+    const csvCell = (value) => {
+      let text = value == null ? "" : String(value);
+      if (/^[\u0000-\u0020]*[=+@-]/.test(text)) text = `'${text}`;
+      return `"${text.replaceAll('"', '""')}"`;
+    };
+    const rows = [columns.map(([, label]) => csvCell(label)).join(",")];
+    bookings.forEach((booking) => rows.push(columns.map(([key]) => csvCell(booking[key])).join(",")));
+    const blob = new Blob(["\uFEFF", rows.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `dan-visuals-bookings-${dateKey(new Date())}.csv`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   });
 
   function setTab(active) {
