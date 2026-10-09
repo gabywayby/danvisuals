@@ -10,6 +10,7 @@
   const bookingsBody = document.getElementById("bookingsBody");
   const emptyBookings = document.getElementById("emptyBookings");
   const calendarGrid = document.getElementById("calendarGrid");
+  const selectedDayPanel = document.getElementById("selectedDayPanel");
   const calendarTitle = document.getElementById("calendarTitle");
   const blockedDateForm = document.getElementById("blockedDateForm");
   const blockedDateList = document.getElementById("blockedDateList");
@@ -20,6 +21,7 @@
     : null;
   let bookings = [];
   let blockedDates = [];
+  let selectedDay = dateKey(new Date());
   let month = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
   const localDate = (value) => {
@@ -154,10 +156,14 @@
     for (let index = 0; index < 42; index += 1) {
       const date = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + index);
       const key = dateKey(date);
-      const day = document.createElement("div");
+      const day = document.createElement("button");
+      day.type = "button";
       day.className = "calendar-day";
+      day.dataset.date = key;
+      day.setAttribute("aria-pressed", String(key === selectedDay));
       if (date.getMonth() !== month.getMonth()) day.classList.add("is-outside");
       if (key === today) day.classList.add("is-today");
+      if (key === selectedDay) day.classList.add("is-selected");
       const number = document.createElement("span");
       number.className = "day-number";
       number.textContent = date.getDate();
@@ -171,6 +177,52 @@
       });
       calendarGrid.append(day);
     }
+    renderDayPanel();
+  }
+
+  function renderDayPanel() {
+    selectedDayPanel.replaceChildren();
+    const heading = document.createElement("h3");
+    heading.textContent = selectedDay ? formatDate(selectedDay) : "Select a date";
+    selectedDayPanel.append(heading);
+    const dayBookings = bookings.filter((booking) => booking.event_date === selectedDay);
+    if (!dayBookings.length) {
+      const empty = document.createElement("p");
+      empty.className = "day-panel-empty";
+      empty.textContent = "No bookings for this date.";
+      selectedDayPanel.append(empty);
+      return;
+    }
+    dayBookings.forEach((booking) => {
+      const card = document.createElement("article");
+      card.className = "day-booking-card";
+      const name = document.createElement("h4");
+      name.textContent = booking.name;
+      const detail = document.createElement("p");
+      detail.textContent = `${booking.event} · ${booking.event_time} · ${booking.status}`;
+      const actions = document.createElement("div");
+      actions.className = "day-booking-actions";
+      if (booking.status === "new") {
+        const confirm = document.createElement("button");
+        confirm.type = "button";
+        confirm.className = "button quick-status";
+        confirm.dataset.bookingId = booking.id;
+        confirm.dataset.status = "confirmed";
+        confirm.textContent = "Confirm";
+        actions.append(confirm);
+      }
+      if (booking.status !== "cancelled") {
+        const cancel = document.createElement("button");
+        cancel.type = "button";
+        cancel.className = "button button-quiet quick-status";
+        cancel.dataset.bookingId = booking.id;
+        cancel.dataset.status = "cancelled";
+        cancel.textContent = "Cancel booking";
+        actions.append(cancel);
+      }
+      card.append(name, detail, actions);
+      selectedDayPanel.append(card);
+    });
   }
 
   function renderBlockedDates() {
@@ -323,6 +375,31 @@
   document.getElementById("calendarTab").addEventListener("click", () => setTab("calendar"));
   document.getElementById("previousMonth").addEventListener("click", () => { month = new Date(month.getFullYear(), month.getMonth() - 1, 1); renderCalendar(); });
   document.getElementById("nextMonth").addEventListener("click", () => { month = new Date(month.getFullYear(), month.getMonth() + 1, 1); renderCalendar(); });
+  calendarGrid.addEventListener("click", (event) => {
+    const dayButton = event.target.closest("button[data-date]");
+    if (!dayButton) return;
+    selectedDay = dayButton.dataset.date;
+    const date = localDate(selectedDay);
+    if (date.getMonth() !== month.getMonth()) month = new Date(date.getFullYear(), date.getMonth(), 1);
+    renderCalendar();
+  });
+  selectedDayPanel.addEventListener("click", async (event) => {
+    const button = event.target.closest("button.quick-status");
+    if (!button) return;
+    button.disabled = true;
+    const { error } = await client.from("bookings").update({ status: button.dataset.status }).eq("id", button.dataset.bookingId);
+    if (error) {
+      button.disabled = false;
+      dashboardMessage.textContent = "Booking action couldn’t be saved.";
+      return;
+    }
+    const booking = bookings.find((item) => item.id === button.dataset.bookingId);
+    booking.status = button.dataset.status;
+    dashboardMessage.textContent = `Booking marked ${booking.status}.`;
+    renderStats();
+    renderTable();
+    renderCalendar();
+  });
 
   blockedDateForm.addEventListener("submit", async (event) => {
     event.preventDefault();
