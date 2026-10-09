@@ -2,7 +2,9 @@
   const { createClient } = window.supabase;
   const configured = window.SUPABASE_URL !== "YOUR_SUPABASE_URL"
     && window.SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY";
-  const client = configured ? createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null;
+  const client = configured ? createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  }) : null;
   const form = document.getElementById("bookingForm");
   const button = form.querySelector("button[type='submit']");
   const status = document.getElementById("bookingStatus");
@@ -14,6 +16,8 @@
   let availabilityMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
   const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const today = dateKey(new Date());
+  dateField.min = today;
   const localDate = (value) => {
     const [year, month, day] = value.split("-").map(Number);
     return new Date(year, month - 1, day);
@@ -35,16 +39,19 @@
       const key = dateKey(date);
       const inMonth = date.getMonth() === availabilityMonth.getMonth();
       const taken = unavailableDates.has(key);
+      const past = key < today;
       const day = document.createElement("button");
       day.type = "button";
       day.className = "availability-day";
       day.textContent = String(date.getDate());
       day.dataset.date = key;
-      day.disabled = !inMonth || taken;
+      day.disabled = !inMonth || taken || past;
       if (!inMonth) day.classList.add("is-outside");
       if (taken) day.classList.add("is-taken");
+      if (past) day.classList.add("is-past");
       if (key === dateField.value) day.classList.add("is-selected");
-      day.setAttribute("aria-label", `${date.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}${taken ? ", unavailable" : ", available"}`);
+      const availabilityLabel = past ? ", past date" : taken ? ", unavailable" : ", available";
+      day.setAttribute("aria-label", `${date.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}${availabilityLabel}`);
       day.setAttribute("aria-disabled", String(day.disabled));
       availabilityGrid.append(day);
     }
@@ -113,6 +120,10 @@
     }
     if (!client) {
       status.textContent = "Booking is not configured yet. Please contact Dan Visuals directly.";
+      return;
+    }
+    if (dateField.value < today) {
+      status.textContent = "Please choose a date that is today or later.";
       return;
     }
     if (unavailableDates.has(dateField.value)) {

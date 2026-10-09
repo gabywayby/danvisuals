@@ -188,6 +188,7 @@ h1, h2, h3 { font-family: var(--font-head); font-weight: 400; }
 .availability-day:hover:not(:disabled) { border-color: var(--ink); background: #ffffff80; }
 .availability-day.is-selected { border-color: var(--ink); background: var(--ink); color: var(--cream); }
 .availability-day.is-taken { border-color: #a53636; background: #a5363620; color: #8c2424; text-decoration: line-through; cursor: not-allowed; opacity: .8; }
+.availability-day.is-past { opacity: .35; cursor: not-allowed; }
 .availability-day.is-outside { visibility: hidden; }
 .availability-day:disabled:not(.is-taken) { cursor: default; }
 .availability-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; font-size: .85rem; }
