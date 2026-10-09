@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://gabywayby.github.io/danvisuals/sitemap.xml

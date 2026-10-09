@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Book Dan Visuals | Wedding & Event Photography</title>
   <meta name="description" content="Tell Dan Visuals about your event and photography booking.">
+  <link rel="icon" type="image/png" href="images/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400;500;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
@@ -12,8 +13,9 @@
 </head>
 <body>
   <header class="nav">
-    <a href="index.html#home" class="logo"><img src="images/logo.jpg" alt="Dan Visuals"></a>
-    <nav><a href="index.html#portfolio">Weddings</a><a href="index.html#packages">Packages</a><a href="index.html#about">About</a></nav>
+    <a href="index.html#home" class="logo"><img src="images/logo.png" alt="Dan Visuals"></a>
+    <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="site-navigation"><span></span><span></span><span></span></button>
+    <nav id="site-navigation"><a href="index.html#portfolio">Weddings</a><a href="index.html#packages">Packages</a><a href="index.html#about">About</a></nav>
   </header>
 
   <main class="booking-page">
@@ -53,6 +55,7 @@
           <option>Cash</option><option>Bank transfer</option><option>GCash</option><option>Maya</option><option>Other / discuss with photographer</option>
         </select>
       </label>
+      <label class="form-honeypot" aria-hidden="true">Leave this field empty<input name="_honey" type="text" tabindex="-1" autocomplete="off"></label>
       <p class="booking-note full-field">Your inquiry will be sent to Dan Visuals. Your date is not reserved until availability and booking terms are confirmed.</p>
       <button class="btn booking-submit full-field" type="submit">Send booking inquiry</button>
       <p class="booking-status full-field" id="bookingStatus" role="status" aria-live="polite"></p>
@@ -64,6 +67,21 @@
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
+    const menuButton = document.querySelector(".menu-toggle");
+    const menu = document.getElementById("site-navigation");
+    menuButton.addEventListener("click", () => {
+      const isOpen = menuButton.getAttribute("aria-expanded") === "true";
+      menuButton.setAttribute("aria-expanded", String(!isOpen));
+      menuButton.setAttribute("aria-label", isOpen ? "Open navigation" : "Close navigation");
+      menu.classList.toggle("is-open", !isOpen);
+    });
+    menu.addEventListener("click", (event) => {
+      if (event.target.closest("a")) {
+        menu.classList.remove("is-open");
+        menuButton.setAttribute("aria-expanded", "false");
+        menuButton.setAttribute("aria-label", "Open navigation");
+      }
+    });
     const selectedPackage = new URLSearchParams(window.location.search).get("package");
     if (selectedPackage) document.querySelector('[name="package"]').value = selectedPackage;
     document.getElementById("bookingForm").addEventListener("submit", async (event) => {

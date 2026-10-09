@@ -1,5 +1,21 @@
 document.getElementById("year").textContent = new Date().getFullYear();
 
+const menuButton = document.querySelector(".menu-toggle");
+const menu = document.getElementById("site-navigation");
+menuButton.addEventListener("click", () => {
+  const isOpen = menuButton.getAttribute("aria-expanded") === "true";
+  menuButton.setAttribute("aria-expanded", String(!isOpen));
+  menuButton.setAttribute("aria-label", isOpen ? "Open navigation" : "Close navigation");
+  menu.classList.toggle("is-open", !isOpen);
+});
+menu.addEventListener("click", (event) => {
+  if (event.target.closest("a")) {
+    menu.classList.remove("is-open");
+    menuButton.setAttribute("aria-expanded", "false");
+    menuButton.setAttribute("aria-label", "Open navigation");
+  }
+});
+
 // Hero slideshow: add the remaining photos to images/ using these filenames.
 (function () {
   const slides = document.querySelectorAll(".hero-slide");
