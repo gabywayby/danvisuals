@@ -11,12 +11,15 @@
   const emptyBookings = document.getElementById("emptyBookings");
   const calendarGrid = document.getElementById("calendarGrid");
   const calendarTitle = document.getElementById("calendarTitle");
+  const blockedDateForm = document.getElementById("blockedDateForm");
+  const blockedDateList = document.getElementById("blockedDateList");
   const statusOptions = ["new", "confirmed", "completed", "cancelled"];
   const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const client = configured
     ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY)
     : null;
   let bookings = [];
+  let blockedDates = [];
   let month = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
   const localDate = (value) => {
@@ -170,6 +173,33 @@
     }
   }
 
+  function renderBlockedDates() {
+    blockedDateList.replaceChildren();
+    blockedDates.forEach((item) => {
+      const li = document.createElement("li");
+      const date = document.createElement("span");
+      date.textContent = formatDate(item.blocked_date);
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "Remove";
+      remove.setAttribute("aria-label", `Remove blocked date ${formatDate(item.blocked_date)}`);
+      remove.dataset.blockedDateId = item.id;
+      li.append(date, remove);
+      blockedDateList.append(li);
+    });
+  }
+
+  async function loadBlockedDates() {
+    const { data, error } = await client.from("blocked_dates")
+      .select("id, blocked_date").order("blocked_date", { ascending: true });
+    if (error) {
+      dashboardMessage.textContent = "Couldn’t load unavailable dates. Check the blocked-dates migration.";
+      return;
+    }
+    blockedDates = data || [];
+    renderBlockedDates();
+  }
+
   async function loadBookings() {
     dashboardMessage.textContent = "Loading bookings…";
     const { data, error } = await client.from("bookings")
@@ -184,6 +214,7 @@
     renderStats();
     renderTable();
     renderCalendar();
+    await loadBlockedDates();
   }
 
   loginForm.addEventListener("submit", async (event) => {
@@ -292,6 +323,36 @@
   document.getElementById("calendarTab").addEventListener("click", () => setTab("calendar"));
   document.getElementById("previousMonth").addEventListener("click", () => { month = new Date(month.getFullYear(), month.getMonth() - 1, 1); renderCalendar(); });
   document.getElementById("nextMonth").addEventListener("click", () => { month = new Date(month.getFullYear(), month.getMonth() + 1, 1); renderCalendar(); });
+
+  blockedDateForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const input = blockedDateForm.elements.blocked_date;
+    const button = blockedDateForm.querySelector("button[type='submit']");
+    button.disabled = true;
+    const { error } = await client.from("blocked_dates").insert({ blocked_date: input.value });
+    button.disabled = false;
+    if (error) {
+      dashboardMessage.textContent = error.code === "23505" ? "That date is already blocked." : "Couldn’t block that date.";
+      return;
+    }
+    dashboardMessage.textContent = "Date blocked.";
+    blockedDateForm.reset();
+    await loadBlockedDates();
+  });
+
+  blockedDateList.addEventListener("click", async (event) => {
+    const button = event.target.closest("button[data-blocked-date-id]");
+    if (!button) return;
+    button.disabled = true;
+    const { error } = await client.from("blocked_dates").delete().eq("id", button.dataset.blockedDateId);
+    if (error) {
+      button.disabled = false;
+      dashboardMessage.textContent = "Couldn’t remove that unavailable date.";
+      return;
+    }
+    dashboardMessage.textContent = "Date removed.";
+    await loadBlockedDates();
+  });
 
   function setTab(active) {
     const bookingsActive = active === "bookings";

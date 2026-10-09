@@ -6,6 +6,14 @@
   const form = document.getElementById("bookingForm");
   const button = form.querySelector("button[type='submit']");
   const status = document.getElementById("bookingStatus");
+  const dateField = form.elements.date;
+  let blockedDates = null;
+
+  async function loadBlockedDates() {
+    const { data, error } = await client.from("blocked_dates").select("blocked_date");
+    if (error) return;
+    blockedDates = new Set((data || []).map((item) => item.blocked_date));
+  }
 
   const selectedPackage = new URLSearchParams(window.location.search).get("package");
   if (selectedPackage && [...form.elements.package.options].some((option) => option.value === selectedPackage)) {
@@ -21,6 +29,14 @@
     }
     if (!client) {
       status.textContent = "Booking is not configured yet. Please contact Dan Visuals directly.";
+      return;
+    }
+    if (!blockedDates) {
+      status.textContent = "We can’t verify availability right now. Please try again shortly.";
+      return;
+    }
+    if (blockedDates.has(dateField.value)) {
+      status.textContent = "That date is unavailable. Please choose another date.";
       return;
     }
 
@@ -43,10 +59,17 @@
     const { error } = await client.from("bookings").insert(booking);
     button.disabled = false;
     if (error) {
+      if (error.message?.includes("This date is unavailable")) {
+        status.textContent = "That date is unavailable. Please choose another date.";
+        blockedDates.add(dateField.value);
+        return;
+      }
       status.textContent = "We couldn’t send your inquiry. Please try again or contact Dan Visuals directly.";
       return;
     }
     status.textContent = "Your inquiry was sent. Thank you! I’ll be in touch soon.";
     form.reset();
   });
+
+  if (client) loadBlockedDates();
 })();
