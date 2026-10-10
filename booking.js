@@ -54,9 +54,24 @@
       addonsFieldset.disabled = false;
       return;
     }
-    const { data, error } = await client.from("addons").select("code, label, price").eq("active", true).order("sort", { ascending: true });
-    addonsFieldset.disabled = false;
+    let result;
+    let timeoutId;
+    try {
+      result = await Promise.race([
+        client.from("addons").select("code, label, price").eq("active", true).order("sort", { ascending: true }),
+        new Promise((resolve) => {
+          timeoutId = setTimeout(() => resolve({ data: null, error: { message: "Timed out after 10 seconds" } }), 10000);
+        })
+      ]);
+    } catch (error) {
+      result = { data: null, error };
+    } finally {
+      clearTimeout(timeoutId);
+      addonsFieldset.disabled = false;
+    }
+    const { data, error } = result;
     if (error) {
+      console.error("Add-ons failed to load:", error);
       addonsMessage.textContent = "Optional add-ons could not be loaded. You can still send an inquiry.";
       return;
     }
