@@ -3,16 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://rmaswjkqiorjswhzjcte.supabase.co; connect-src 'self' https://rmaswjkqiorjswhzjcte.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="robots" content="noindex, nofollow">
   <title>Studio bookings | Dan Visuals</title>
   <link rel="icon" type="image/png" href="images/logo.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400;500;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="admin.css">
   <link rel="stylesheet" href="admin-bookings.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <link rel="stylesheet" href="admin-gallery.css">
+  <script src="vendor/supabase.js"></script>
   <script src="config.js" defer></script>
+  <script src="admin-security.js"></script>
   <script src="admin.js" defer></script>
 </head>
 <body>
@@ -42,31 +44,56 @@
       </div>
       <section class="blocked-panel" aria-labelledby="blockedHeading">
         <div><h2 id="blockedHeading">Unavailable dates</h2><p>These dates can’t be requested on the public form.</p></div>
-        <form id="blockedDateForm" class="blocked-date-form"><label for="blockedDateInput">Block a date</label><input id="blockedDateInput" name="blocked_date" type="date" required><button class="button" type="submit">Add date</button></form>
+        <form id="blockedDateForm" class="blocked-date-form"><label for="blockedDateInput">Block a date</label><input id="blockedDateInput" name="blocked_date" type="date" required><button class="button add-date-button" type="submit" aria-label="Add unavailable date" title="Add unavailable date"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2"/></svg></button></form>
         <ul id="blockedDateList" class="blocked-date-list"></ul>
       </section>
-      <div class="tab-bar" role="tablist" aria-label="Dashboard views">
-        <button class="tab-button is-active" id="bookingsTab" type="button" role="tab" aria-selected="true">Bookings</button>
-        <button class="tab-button" id="calendarTab" type="button" role="tab" aria-selected="false">Calendar</button>
-      </div>
-      <section id="bookingsView" class="view-panel" role="tabpanel" aria-labelledby="bookingsTab">
-        <div class="view-toolbar"><p>Manage inquiries and payment details.</p><button class="button" id="exportCsv" type="button">Export CSV</button></div>
-        <div class="filter-bar" id="bookingFilters">
-          <button class="filter-pill is-active" data-filter="all" type="button">All</button>
-          <button class="filter-pill" data-filter="new" type="button">New</button>
-          <button class="filter-pill" data-filter="confirmed" type="button">Confirmed</button>
-          <button class="filter-pill" data-filter="completed" type="button">Completed</button>
-          <button class="filter-pill" data-filter="cancelled" type="button">Cancelled</button>
-          <input type="search" placeholder="Search name, email, phone, location" aria-label="Search bookings">
+      <div class="admin-workspace">
+        <nav class="admin-sidebar" aria-label="Dashboard sections">
+          <button class="sidebar-link is-active" id="bookingsTab" type="button" aria-current="page" aria-label="Bookings">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7.5h16v12H4zM8 7.5V5h8v2.5M4 12h16m-10 0v2"/></svg><span>Bookings</span>
+          </button>
+          <button class="sidebar-link" id="calendarTab" type="button" aria-label="Calendar">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 4v3m14-3v3M4 7h16v13H4zM4 11h16m-11 4h.01M12 15h.01M16 15h.01M8 18h.01M12 18h.01"/></svg><span>Calendar</span>
+          </button>
+          <button class="sidebar-link" id="galleryTab" type="button" aria-label="Gallery">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15.5 9h.01"/></svg><span>Gallery</span>
+          </button>
+        </nav>
+        <div class="admin-views">
+          <section id="bookingsView" class="view-panel" aria-labelledby="bookingsTab">
+            <div class="view-toolbar"><p>Manage inquiries and payment details.</p><button class="button" id="exportCsv" type="button">Export CSV</button></div>
+            <div class="filter-bar" id="bookingFilters">
+              <button class="filter-pill is-active" data-filter="all" type="button">All</button>
+              <button class="filter-pill" data-filter="new" type="button">New</button>
+              <button class="filter-pill" data-filter="confirmed" type="button">Confirmed</button>
+              <button class="filter-pill" data-filter="completed" type="button">Completed</button>
+              <button class="filter-pill" data-filter="cancelled" type="button">Cancelled</button>
+              <input type="search" placeholder="Search name, email, phone, location" aria-label="Search bookings">
+            </div>
+            <div class="booking-list" id="bookingsBody"></div>
+            <p id="emptyBookings" class="empty-state hidden">No bookings yet.</p>
+          </section>
+          <section id="calendarView" class="view-panel hidden" aria-labelledby="calendarTab">
+            <div class="calendar-toolbar"><button class="button button-quiet" id="previousMonth" type="button" aria-label="Previous month">‹</button><h2 id="calendarTitle"></h2><button class="button button-quiet" id="nextMonth" type="button" aria-label="Next month">›</button></div>
+            <div class="calendar-layout"><div class="calendar-grid" id="calendarGrid"></div><aside class="day-panel" id="selectedDayPanel" aria-live="polite"></aside></div>
+            <div class="calendar-legend"><span class="legend-new">New</span><span class="legend-confirmed">Confirmed</span><span class="legend-completed">Completed</span><span class="legend-cancelled">Cancelled</span></div>
+          </section>
+          <section id="galleryView" class="view-panel hidden" aria-labelledby="galleryTab">
+            <div class="view-toolbar"><div><h2>Wedding galleries</h2><p>Add a wedding and upload its portfolio photos.</p></div></div>
+            <form id="weddingForm" class="wedding-form">
+              <label>Couple names<input name="couple_names" type="text" maxlength="120" placeholder="e.g. Alex & Jamie" required></label>
+              <label>Wedding date<input name="event_date" type="date" required></label>
+              <label>Category<select name="category" required><option value="wedding">Wedding</option><option value="debut">Debut</option><option value="birthday">Birthday</option><option value="maternity">Maternity</option><option value="engagement">Engagement</option><option value="other">Other</option></select></label>
+              <label class="gallery-location">Location<input name="location" type="text" maxlength="180" placeholder="City or venue"></label>
+              <label class="gallery-files">Photos<input name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple required><small>JPG, PNG, or WebP; up to 15 MB each.</small></label>
+              <button class="button gallery-submit" type="submit">Add wedding and publish</button>
+            </form>
+            <p id="galleryMessage" class="message" role="status" aria-live="polite"></p>
+            <div id="weddingGalleryList" class="wedding-gallery-list"></div>
+            <p id="emptyWeddings" class="empty-state hidden">No managed galleries yet.</p>
+          </section>
         </div>
-        <div class="booking-list" id="bookingsBody"></div>
-        <p id="emptyBookings" class="empty-state hidden">No bookings yet.</p>
-      </section>
-      <section id="calendarView" class="view-panel hidden" role="tabpanel" aria-labelledby="calendarTab">
-        <div class="calendar-toolbar"><button class="button button-quiet" id="previousMonth" type="button" aria-label="Previous month">‹</button><h2 id="calendarTitle"></h2><button class="button button-quiet" id="nextMonth" type="button" aria-label="Next month">›</button></div>
-        <div class="calendar-layout"><div class="calendar-grid" id="calendarGrid"></div><aside class="day-panel" id="selectedDayPanel" aria-live="polite"></aside></div>
-        <div class="calendar-legend"><span class="legend-new">New</span><span class="legend-confirmed">Confirmed</span><span class="legend-completed">Completed</span><span class="legend-cancelled">Cancelled</span></div>
-      </section>
+      </div>
     </section>
   </main>
 </body>

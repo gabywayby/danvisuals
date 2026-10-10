@@ -16,13 +16,21 @@
   const calendarTitle = document.getElementById("calendarTitle");
   const blockedDateForm = document.getElementById("blockedDateForm");
   const blockedDateList = document.getElementById("blockedDateList");
+  const weddingForm = document.getElementById("weddingForm");
+  const weddingGalleryList = document.getElementById("weddingGalleryList");
+  const galleryMessage = document.getElementById("galleryMessage");
+  const emptyWeddings = document.getElementById("emptyWeddings");
   const statusOptions = ["new", "confirmed", "completed", "cancelled"];
+  const galleryCategories = ["wedding", "debut", "birthday", "maternity", "engagement", "other"];
+  const categoryLabel = (value) => value.charAt(0).toUpperCase() + value.slice(1);
   const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const client = configured
     ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY)
     : null;
   let bookings = [];
   let blockedDates = [];
+  let weddings = [];
+  let weddingPhotos = new Map();
   let selectedDay;
   let activeBookingFilter = "all";
   let month = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -35,12 +43,6 @@
   selectedDay = dateKey(new Date());
   const formatDate = (value) => localDate(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   const formatPhp = (value) => value == null ? "—" : new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 2 }).format(Number(value));
-  const isDriveUrl = (value) => {
-    try {
-      const url = new URL(value);
-      return url.protocol === "https:" && url.hostname === "drive.google.com";
-    } catch { return false; }
-  };
   const activeBookingsForDate = (value) => bookings.filter((item) => item.event_date === value && item.status !== "cancelled");
   const hasDateConflict = (value) => activeBookingsForDate(value).length > 1;
   const make = (tag, className, value) => {
@@ -118,8 +120,23 @@
       select.value = status;
       side.append(select);
       const actions = make("div", "row-actions");
-      const deleteButton = make("button", "button button-danger delete-booking", "Delete");
+      const deleteButton = make("button", "button button-danger delete-booking");
       deleteButton.type = "button";
+      deleteButton.setAttribute("aria-label", `Delete booking for ${booking.name || "client"}`);
+      deleteButton.title = "Delete booking";
+      const deleteIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      deleteIcon.setAttribute("viewBox", "0 0 24 24");
+      deleteIcon.setAttribute("aria-hidden", "true");
+      deleteIcon.setAttribute("focusable", "false");
+      const deletePath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      deletePath.setAttribute("d", "M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3");
+      deletePath.setAttribute("fill", "none");
+      deletePath.setAttribute("stroke", "currentColor");
+      deletePath.setAttribute("stroke-linecap", "round");
+      deletePath.setAttribute("stroke-linejoin", "round");
+      deletePath.setAttribute("stroke-width", "1.8");
+      deleteIcon.append(deletePath);
+      deleteButton.append(deleteIcon);
       actions.append(deleteButton);
       side.append(actions);
 
@@ -163,7 +180,7 @@
       const saveDelivery = make("button", "button save-delivery", "Save link");
       saveDelivery.type = "button";
       delivery.append(saveDelivery);
-      if (booking.delivery_url && isDriveUrl(booking.delivery_url)) {
+      if (booking.delivery_url && AdminSecurity.isDeliveryUrl(booking.delivery_url)) {
         const openLink = make("a", "subtext", "Open gallery");
         openLink.href = booking.delivery_url;
         openLink.target = "_blank";
@@ -297,13 +314,305 @@
       date.textContent = formatDate(item.blocked_date);
       const remove = document.createElement("button");
       remove.type = "button";
-      remove.textContent = "Remove";
       remove.setAttribute("aria-label", `Remove blocked date ${formatDate(item.blocked_date)}`);
+      remove.title = "Remove unavailable date";
       remove.dataset.blockedDateId = item.id;
+      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      icon.setAttribute("viewBox", "0 0 24 24");
+      icon.setAttribute("aria-hidden", "true");
+      icon.setAttribute("focusable", "false");
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", "M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3");
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke", "currentColor");
+      path.setAttribute("stroke-linecap", "round");
+      path.setAttribute("stroke-linejoin", "round");
+      path.setAttribute("stroke-width", "1.8");
+      icon.append(path);
+      remove.append(icon);
       li.append(date, remove);
       blockedDateList.append(li);
     });
   }
+
+  const weddingDate = (value) => localDate(value).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+  const galleryBucket = "wedding-gallery";
+  const supportedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+  const photoPathFor = (weddingId, file) => {
+    const extension = file.type === "image/jpeg" ? "jpg" : file.type.split("/")[1];
+    return `${weddingId}/${crypto.randomUUID()}.${extension}`;
+  };
+
+  function publicPhotoUrl(path) {
+    return client.storage.from(galleryBucket).getPublicUrl(path).data.publicUrl;
+  }
+
+  async function saveWeddingPhotos(weddingId, files, startingPosition = 0) {
+    const addedPaths = [];
+    const photoRows = [];
+    for (const [index, file] of [...files].entries()) {
+      if (!supportedImageTypes.has(file.type) || file.size > 15 * 1024 * 1024) {
+        if (addedPaths.length) await client.storage.from(galleryBucket).remove(addedPaths);
+        return { error: "Choose JPG, PNG, or WebP photos no larger than 15 MB each." };
+      }
+      const path = photoPathFor(weddingId, file);
+      const { error: uploadError } = await client.storage.from(galleryBucket).upload(path, file, {
+        cacheControl: "31536000", contentType: file.type, upsert: false
+      });
+      if (uploadError) {
+        if (addedPaths.length) await client.storage.from(galleryBucket).remove(addedPaths);
+        return { error: "A photo could not be uploaded. Check the bucket migration and try again." };
+      }
+      addedPaths.push(path);
+      photoRows.push({ wedding_id: weddingId, storage_path: path, position: startingPosition + index });
+    }
+    const { error } = await client.from("wedding_gallery_photos").insert(photoRows);
+    if (error) {
+      if (addedPaths.length) await client.storage.from(galleryBucket).remove(addedPaths);
+      return { error: "Photos uploaded, but the gallery could not be saved. Please try again." };
+    }
+    return { error: null };
+  }
+
+  function renderWeddingGalleries() {
+    weddingGalleryList.replaceChildren();
+    emptyWeddings.classList.toggle("hidden", weddings.length > 0);
+    weddings.forEach((wedding) => {
+      const card = make("article", "wedding-gallery-card");
+      const heading = make("div", "wedding-gallery-heading");
+      const title = make("h3", "", wedding.couple_names);
+      const meta = make("p", "", `${categoryLabel(wedding.category || "wedding")} · ${weddingDate(wedding.event_date)}${wedding.location ? ` · ${wedding.location}` : ""}`);
+      const categorySelect = document.createElement("select");
+      categorySelect.className = "gallery-category";
+      categorySelect.dataset.weddingId = wedding.id;
+      categorySelect.setAttribute("aria-label", `Category for ${wedding.couple_names}`);
+      galleryCategories.forEach((category) => {
+        const option = document.createElement("option");
+        option.value = category;
+        option.textContent = categoryLabel(category);
+        option.selected = category === wedding.category;
+        categorySelect.append(option);
+      });
+      heading.append(title, meta, categorySelect);
+
+      const publishLabel = document.createElement("label");
+      publishLabel.className = "gallery-publish-toggle";
+      const publishInput = document.createElement("input");
+      publishInput.type = "checkbox";
+      publishInput.className = "gallery-publish";
+      publishInput.checked = Boolean(wedding.is_published);
+      publishInput.disabled = !(weddingPhotos.get(wedding.id) || []).length;
+      publishInput.setAttribute("aria-label", `Publish ${wedding.couple_names} on the public portfolio`);
+      publishInput.dataset.weddingId = wedding.id;
+      publishLabel.append(publishInput, document.createTextNode(" Published"));
+
+      const removeWedding = make("button", "button button-danger gallery-delete-wedding", "Delete wedding");
+      removeWedding.type = "button";
+      removeWedding.dataset.weddingId = wedding.id;
+      const top = make("div", "wedding-gallery-top");
+      top.append(heading, publishLabel, removeWedding);
+
+      const photos = make("div", "wedding-photo-list");
+      (weddingPhotos.get(wedding.id) || []).forEach((photo) => {
+        const tile = make("div", "wedding-photo-tile");
+        const image = document.createElement("img");
+        image.src = publicPhotoUrl(photo.storage_path);
+        image.alt = `${wedding.couple_names} wedding portfolio photo`;
+        image.loading = "lazy";
+        const deletePhoto = make("button", "wedding-photo-delete", "×");
+        deletePhoto.type = "button";
+        deletePhoto.title = "Remove photo";
+        deletePhoto.setAttribute("aria-label", `Remove a photo from ${wedding.couple_names}`);
+        deletePhoto.dataset.photoId = photo.id;
+        deletePhoto.dataset.storagePath = photo.storage_path;
+        tile.append(image, deletePhoto);
+        photos.append(tile);
+      });
+
+      const uploadForm = make("form", "wedding-photo-upload");
+      uploadForm.dataset.weddingId = wedding.id;
+      const uploadLabel = document.createElement("label");
+      uploadLabel.textContent = "Add photos";
+      const uploadInput = document.createElement("input");
+      uploadInput.type = "file";
+      uploadInput.name = "photos";
+      uploadInput.accept = "image/jpeg,image/png,image/webp";
+      uploadInput.multiple = true;
+      uploadInput.required = true;
+      uploadLabel.append(uploadInput);
+      const uploadButton = make("button", "button", "Upload");
+      uploadButton.type = "submit";
+      uploadForm.append(uploadLabel, uploadButton);
+
+      card.append(top, photos, uploadForm);
+      weddingGalleryList.append(card);
+    });
+  }
+
+  async function loadWeddingGalleries() {
+    galleryMessage.textContent = "Loading galleries…";
+    const { data, error } = await client.from("weddings")
+      .select("id, couple_names, event_date, location, category, is_published")
+      .order("event_date", { ascending: false });
+    if (error) {
+      galleryMessage.textContent = "Couldn’t load galleries. Run migration 014 in Supabase.";
+      return;
+    }
+    weddings = data || [];
+    weddingPhotos = new Map(weddings.map((wedding) => [wedding.id, []]));
+    if (weddings.length) {
+      const { data: photoRows, error: photosError } = await client.from("wedding_gallery_photos")
+        .select("id, wedding_id, storage_path, position")
+        .in("wedding_id", weddings.map((wedding) => wedding.id))
+        .order("position", { ascending: true }).order("created_at", { ascending: true });
+      if (photosError) {
+        galleryMessage.textContent = "Couldn’t load gallery photos. Check migration 014.";
+        return;
+      }
+      (photoRows || []).forEach((photo) => weddingPhotos.get(photo.wedding_id)?.push(photo));
+    }
+    galleryMessage.textContent = "";
+    renderWeddingGalleries();
+  }
+
+  weddingForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const fields = new FormData(weddingForm);
+    const files = fields.getAll("photos").filter((file) => file instanceof File && file.size > 0);
+    if (!files.length) {
+      galleryMessage.textContent = "Choose at least one photo for the wedding gallery.";
+      return;
+    }
+    const submit = weddingForm.querySelector("button[type='submit']");
+    submit.disabled = true;
+    galleryMessage.textContent = "Creating wedding gallery and uploading photos…";
+    const { data: wedding, error } = await client.from("weddings").insert({
+      couple_names: fields.get("couple_names").trim(),
+      event_date: fields.get("event_date"),
+      location: fields.get("location").trim(),
+      category: fields.get("category"),
+      is_published: false
+    }).select("id").single();
+    if (error) {
+      submit.disabled = false;
+      galleryMessage.textContent = "Couldn’t create the wedding. Check your admin access and migration 014.";
+      return;
+    }
+    const uploadResult = await saveWeddingPhotos(wedding.id, files);
+    if (uploadResult.error) {
+      await client.from("weddings").delete().eq("id", wedding.id);
+      submit.disabled = false;
+      galleryMessage.textContent = uploadResult.error;
+      return;
+    }
+    const { error: publishError } = await client.from("weddings").update({ is_published: true }).eq("id", wedding.id);
+    submit.disabled = false;
+    const resultMessage = publishError
+      ? "Photos are uploaded, but the wedding could not be published. Toggle Published below to try again."
+      : "Wedding added and published to the portfolio.";
+    if (!publishError) weddingForm.reset();
+    await loadWeddingGalleries();
+    galleryMessage.textContent = resultMessage;
+  });
+
+  weddingGalleryList.addEventListener("submit", async (event) => {
+    const uploadForm = event.target.closest(".wedding-photo-upload");
+    if (!uploadForm) return;
+    event.preventDefault();
+    const input = uploadForm.elements.photos;
+    const files = [...input.files];
+    if (!files.length) return;
+    const weddingId = uploadForm.dataset.weddingId;
+    const button = uploadForm.querySelector("button[type='submit']");
+    const currentPhotos = weddingPhotos.get(weddingId) || [];
+    button.disabled = true;
+    galleryMessage.textContent = "Uploading gallery photos…";
+    const result = await saveWeddingPhotos(weddingId, files, currentPhotos.length);
+    button.disabled = false;
+    if (!result.error) await loadWeddingGalleries();
+    galleryMessage.textContent = result.error || "Photos added to the wedding gallery.";
+  });
+
+  weddingGalleryList.addEventListener("change", async (event) => {
+    const categorySelect = event.target.closest(".gallery-category");
+    if (categorySelect) {
+      const wedding = weddings.find((item) => item.id === categorySelect.dataset.weddingId);
+      if (!wedding) return;
+      const previous = wedding.category || "wedding";
+      categorySelect.disabled = true;
+      const { error } = await client.from("weddings").update({ category: categorySelect.value }).eq("id", wedding.id);
+      categorySelect.disabled = false;
+      if (error) {
+        categorySelect.value = previous;
+        galleryMessage.textContent = "Category couldn’t be saved.";
+        return;
+      }
+      wedding.category = categorySelect.value;
+      galleryMessage.textContent = "Gallery category saved.";
+      renderWeddingGalleries();
+      return;
+    }
+    const checkbox = event.target.closest(".gallery-publish");
+    if (!checkbox) return;
+    const wedding = weddings.find((item) => item.id === checkbox.dataset.weddingId);
+    if (!wedding) return;
+    checkbox.disabled = true;
+    const { error } = await client.from("weddings").update({ is_published: checkbox.checked }).eq("id", wedding.id);
+    checkbox.disabled = false;
+    if (error) {
+      checkbox.checked = !checkbox.checked;
+      galleryMessage.textContent = "Publish setting couldn’t be saved.";
+      return;
+    }
+    wedding.is_published = checkbox.checked;
+    galleryMessage.textContent = checkbox.checked ? "Gallery published." : "Gallery unpublished.";
+  });
+
+  weddingGalleryList.addEventListener("click", async (event) => {
+    const photoButton = event.target.closest(".wedding-photo-delete");
+    if (photoButton) {
+      const photoId = photoButton.dataset.photoId;
+      const storagePath = photoButton.dataset.storagePath;
+      if (!window.confirm("Remove this photo from the gallery?")) return;
+      photoButton.disabled = true;
+      const { error: storageError } = await client.storage.from(galleryBucket).remove([storagePath]);
+      if (storageError) {
+        photoButton.disabled = false;
+        galleryMessage.textContent = "Photo couldn’t be removed from storage.";
+        return;
+      }
+      const { error } = await client.from("wedding_gallery_photos").delete().eq("id", photoId);
+      if (error) {
+        galleryMessage.textContent = "Photo file removed, but its gallery record couldn’t be deleted.";
+        return;
+      }
+      await loadWeddingGalleries();
+      galleryMessage.textContent = "Photo removed.";
+      return;
+    }
+    const deleteButton = event.target.closest(".gallery-delete-wedding");
+    if (!deleteButton) return;
+    const wedding = weddings.find((item) => item.id === deleteButton.dataset.weddingId);
+    if (!wedding || !window.confirm(`Delete ${wedding.couple_names} and all its portfolio photos?`)) return;
+    deleteButton.disabled = true;
+    const photos = weddingPhotos.get(wedding.id) || [];
+    if (photos.length) {
+      const { error: storageError } = await client.storage.from(galleryBucket).remove(photos.map((photo) => photo.storage_path));
+      if (storageError) {
+        deleteButton.disabled = false;
+        galleryMessage.textContent = "Wedding photos couldn’t be removed from storage.";
+        return;
+      }
+    }
+    const { error } = await client.from("weddings").delete().eq("id", wedding.id);
+    if (error) {
+      deleteButton.disabled = false;
+      galleryMessage.textContent = "Wedding files were removed, but the gallery record couldn’t be deleted.";
+      return;
+    }
+    await loadWeddingGalleries();
+    galleryMessage.textContent = "Wedding and gallery deleted.";
+  });
 
   async function loadBlockedDates() {
     const { data, error } = await client.from("blocked_dates")
@@ -336,6 +645,7 @@
     renderTable();
     renderCalendar();
     await loadBlockedDates();
+    await loadWeddingGalleries();
   }
 
   loginForm.addEventListener("submit", async (event) => {
@@ -348,15 +658,36 @@
     submitButton.disabled = true;
     loginMessage.textContent = "Signing in…";
     const fields = new FormData(loginForm);
-    const { error } = await client.auth.signInWithPassword({ email: fields.get("email"), password: fields.get("password") });
+    const { data, error } = await client.auth.signInWithPassword({ email: fields.get("email"), password: fields.get("password") });
     submitButton.disabled = false;
-    loginMessage.textContent = error ? "Sign-in failed. Check the email and password." : "";
+    if (error) {
+      loginMessage.textContent = "Sign-in failed. Check the email and password.";
+      return;
+    }
+    loginMessage.textContent = "";
+    try {
+      const ok = await AdminSecurity.mfaGate(client, loginPanel);
+      if (!ok) {
+        await client.auth.signOut();
+        setSignedIn(false);
+        return;
+      }
+      setSignedIn(true);
+      AdminSecurity.startIdleTimer(client);
+      await loadBookings();
+    } catch (mfaError) {
+      console.error("Admin MFA failed:", mfaError);
+      await client.auth.signOut();
+      location.reload();
+    }
   });
 
   signOutButton.addEventListener("click", async () => {
     if (!client) return;
+    AdminSecurity.stopIdleTimer();
     const { error } = await client.auth.signOut();
     if (error) dashboardMessage.textContent = "Couldn’t sign out. Please try again.";
+    else location.reload();
   });
 
   bookingsBody.addEventListener("change", async (event) => {
@@ -389,7 +720,7 @@
       const booking = bookings.find((item) => item.id === row.dataset.bookingId);
       const rawUrl = row.querySelector(".delivery-url").value.trim();
       const deliveryUrl = rawUrl || null;
-      if (deliveryUrl && !isDriveUrl(deliveryUrl)) {
+      if (deliveryUrl && !AdminSecurity.isDeliveryUrl(deliveryUrl)) {
         dashboardMessage.textContent = "Enter a valid HTTPS Google Drive link.";
         return;
       }
@@ -461,6 +792,7 @@
 
   document.getElementById("bookingsTab").addEventListener("click", () => setTab("bookings"));
   document.getElementById("calendarTab").addEventListener("click", () => setTab("calendar"));
+  document.getElementById("galleryTab").addEventListener("click", () => setTab("gallery"));
   bookingFilters.addEventListener("click", (event) => {
     const pill = event.target.closest(".filter-pill");
     if (!pill) return;
@@ -559,27 +891,47 @@
   });
 
   function setTab(active) {
-    const bookingsActive = active === "bookings";
-    document.getElementById("bookingsTab").classList.toggle("is-active", bookingsActive);
-    document.getElementById("bookingsTab").setAttribute("aria-selected", String(bookingsActive));
-    document.getElementById("calendarTab").classList.toggle("is-active", !bookingsActive);
-    document.getElementById("calendarTab").setAttribute("aria-selected", String(!bookingsActive));
-    document.getElementById("bookingsView").classList.toggle("hidden", !bookingsActive);
-    document.getElementById("calendarView").classList.toggle("hidden", bookingsActive);
+    ["bookings", "calendar", "gallery"].forEach((view) => {
+      const selected = active === view;
+      const button = document.getElementById(`${view}Tab`);
+      button.classList.toggle("is-active", selected);
+      if (selected) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
+      document.getElementById(`${view}View`).classList.toggle("hidden", !selected);
+    });
+    if (active === "gallery" && client) loadWeddingGalleries();
   }
 
   if (!configured) loginMessage.textContent = "Add your Supabase project URL and anon key to config.js first.";
+  if (AdminSecurity.consumeIdleNotice()) loginMessage.textContent = "Signed out for security.";
   if (client) {
-    client.auth.getSession().then(({ data }) => {
-      const isSignedIn = Boolean(data.session);
-      setSignedIn(isSignedIn);
-      if (isSignedIn) loadBookings();
+    client.auth.getSession().then(async ({ data, error }) => {
+      if (error || !data.session) {
+        setSignedIn(false);
+        return;
+      }
+      try {
+        const ok = await AdminSecurity.mfaGate(client, loginPanel);
+        if (!ok) {
+          await client.auth.signOut();
+          setSignedIn(false);
+          return;
+        }
+        setSignedIn(true);
+        AdminSecurity.startIdleTimer(client);
+        await loadBookings();
+      } catch (mfaError) {
+        console.error("Admin MFA failed:", mfaError);
+        await client.auth.signOut();
+        location.reload();
+      }
     });
-    client.auth.onAuthStateChange((event, session) => {
-      const isSignedIn = Boolean(session);
-      setSignedIn(isSignedIn);
-      if (event === "SIGNED_IN" && isSignedIn) loadBookings();
-      if (event === "SIGNED_OUT") bookings = [];
+    client.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        AdminSecurity.stopIdleTimer();
+        bookings = [];
+        window.setTimeout(() => location.reload(), 0);
+      }
     });
   }
 })();

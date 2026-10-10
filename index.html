@@ -3,21 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://rmaswjkqiorjswhzjcte.supabase.co; connect-src 'self' https://rmaswjkqiorjswhzjcte.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Dan Visuals | Wedding & Event Photography</title>
   <meta name="description" content="Dan Visuals: wedding, debut, engagement, maternity, and event photography in the Philippines.">
   <link rel="icon" type="image/png" href="images/logo.png">
   <meta property="og:title" content="Dan Visuals | Wedding & Event Photography">
   <meta property="og:description" content="Wedding, debut, engagement, maternity, and event photography in the Philippines.">
   <meta property="og:image" content="https://gabywayby.github.io/danvisuals/images/hero.jpg">
+  <meta name="twitter:card" content="summary_large_image">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://gabywayby.github.io/danvisuals/">
   <script type="application/ld+json">
     {"@context":"https://schema.org","@type":"LocalBusiness","name":"Dan Visuals","url":"https://gabywayby.github.io/danvisuals/","image":"https://gabywayby.github.io/danvisuals/images/hero.jpg","telephone":"+639459656105","email":"gabrieldandelamin700@gmail.com","areaServed":{"@type":"Country","name":"Philippines"},"priceRange":"₱₱"}
   </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400;500;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script src="vendor/supabase.js" defer></script>
+  <script src="config.js" defer></script>
+  <script src="portfolio.js" defer></script>
 </head>
 <body>
 
@@ -25,11 +29,12 @@
     <a href="#home" class="logo"><img src="images/logo.png" alt="Dan Visuals"></a>
     <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="site-navigation"><span></span><span></span><span></span></button>
     <nav id="site-navigation">
-      <a href="#portfolio">Weddings</a>
+      <a href="#portfolio">Portfolio</a>
       <a href="#packages">Packages</a>
       <a href="#testimonials">Reviews</a>
       <a href="#policies">Policies</a>
       <a href="#about">About</a>
+      <a href="#faq">FAQ</a>
       <a href="#contact">Contact</a>
       <a href="booking.html" class="nav-book">Book</a>
     </nav>
@@ -45,20 +50,28 @@
   </section>
 
   <section id="portfolio" class="section">
-    <h2>Weddings</h2>
+    <h2>Portfolio</h2>
+    <div class="portfolio-filters" id="portfolioFilters" aria-label="Filter portfolio by event type">
+      <button type="button" class="portfolio-filter is-active" data-category="all">All</button>
+      <button type="button" class="portfolio-filter" data-category="wedding">Wedding</button>
+      <button type="button" class="portfolio-filter" data-category="debut">Debut</button>
+      <button type="button" class="portfolio-filter" data-category="birthday">Birthday</button>
+      <button type="button" class="portfolio-filter" data-category="maternity">Maternity</button>
+      <button type="button" class="portfolio-filter" data-category="engagement">Engagement</button>
+    </div>
     <div class="wedding-grid">
 
-      <a class="wedding" href="weddings/david-and-dolly/index.html">
+      <a class="wedding" data-category="wedding" href="weddings/david-and-dolly/index.html">
         <img src="weddings/david-and-dolly/cover.jpg" alt="David and Dolly wedding">
         <div class="caption"><h3>David & Dolly</h3><span>January 2, 2026</span></div>
       </a>
 
-      <a class="wedding" href="weddings/ryan-and-grace/index.html">
+      <a class="wedding" data-category="wedding" href="weddings/ryan-and-grace/index.html">
         <img src="weddings/ryan-and-grace/cover.jpg" alt="Ryan and Grace wedding">
         <div class="caption"><h3>Ryan & Grace</h3><span>December 27, 2025</span></div>
       </a>
 
-      <a class="wedding" href="weddings/dominic-and-shammahmae/index.html">
+      <a class="wedding" data-category="wedding" href="weddings/dominic-and-shammahmae/index.html">
         <img src="weddings/dominic-and-shammahmae/cover.jpg" alt="Dominic and Shammahmae wedding">
         <div class="caption"><h3>Dominic & Shammahmae</h3><span>April 24, 2026</span></div>
       </a>
@@ -185,15 +198,28 @@
   <section id="testimonials" class="section testimonials-section">
     <h2>Kind Words</h2>
     <div class="testimonials-grid">
-      <blockquote class="testimonial">“Thank you so much, Gabe! I really love it. The edit turned out just how I expected.”</blockquote>
-      <blockquote class="testimonial">“Hi, Gabe! I just wanted to compliment you on the photos. The editing looks beautiful, and I love them. Thank you so much!”</blockquote>
+      <blockquote class="testimonial">“Thank you so much, Gabe! I really love it. The edit turned out just how I expected.”<cite>Client name, Event type</cite></blockquote>
+      <blockquote class="testimonial">“Hi, Gabe! I just wanted to compliment you on the photos. The editing looks beautiful, and I love them. Thank you so much!”<cite>Client name, Event type</cite></blockquote>
+    </div>
+  </section>
+
+  <section id="faq" class="section faq-section">
+    <h2>Frequently asked questions</h2>
+    <div class="faq-list">
+      <details><summary>How long until I get my photos?</summary><p>Standard Wedding: 3–4 days. Premium Wedding: 1–2 days. Debut, Birthday, Maternity, and Engagement: 2–3 days.</p></details>
+      <details><summary>What should I wear?</summary><p>[FILL IN]</p></details>
+      <details><summary>Do you bring a backup photographer?</summary><p>[FILL IN]</p></details>
+      <details><summary>Do you charge for travel?</summary><p>[FILL IN]</p></details>
+      <details><summary>How much is the deposit and how do I pay?</summary><p>[FILL IN]</p></details>
+      <details><summary>Can I reschedule?</summary><p>[FILL IN]</p></details>
+      <details><summary>How do I receive my photos?</summary><p>I’ll send your finished photos through a Google Drive link. You can also use <a href="photos.html">Find my photos</a> later with your booking code and email address.</p></details>
     </div>
   </section>
 
   <section id="policies" class="section policies-section">
     <h2>Booking Policies</h2>
     <div class="policies-grid">
-      <article class="policy"><h3>Reserve your date</h3><p>Your date is reserved once availability, package, and reservation payment are agreed. I’ll confirm the amount and due date with you before booking.</p></article>
+      <article class="policy"><h3>Wedding downpayment</h3><p>A PHP 5,000 downpayment is required to reserve a wedding date. The remaining balance and payment schedule will be confirmed with you before the booking is finalized.</p></article>
       <article class="policy"><h3>Changes & cancellations</h3><p>Please get in touch as soon as possible if your plans change. Rescheduling depends on availability, and any payment or cancellation terms will follow what we agree on when booking.</p></article>
       <article class="policy"><h3>Photo delivery</h3><p>All packages include delivery through Google Drive. Wedding packages also include a free USB. Edited photos are delivered within the turnaround listed in your selected package.</p></article>
       <article class="policy"><h3>Travel</h3><p>If your venue requires a travel fee, I’ll let you know the amount before your booking is confirmed.</p></article>
@@ -222,7 +248,7 @@
     </p>
   </section>
 
-  <footer>© <span id="year"></span> Dan Visuals</footer>
+  <footer>© <span id="year"></span> Dan Visuals · <a href="photos.html">Find my photos</a></footer>
 
   <script src="script.js"></script>
 </body>

@@ -70,6 +70,10 @@ h1, h2, h3 { font-family: var(--font-head); font-weight: 400; }
 }
 .wedding .caption h3 { font-size: 1.3rem; }
 .wedding .caption span { font-size: .95rem; opacity: .85; letter-spacing: 1px; }
+.portfolio-filters { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: -14px 0 28px; }
+.portfolio-filter { min-height: 38px; padding: 6px 16px; border: 1px solid var(--ink); border-radius: 99px; color: var(--ink); background: transparent; font: inherit; cursor: pointer; }
+.portfolio-filter:hover, .portfolio-filter.is-active { color: var(--cream); background: var(--ink); }
+.wedding[hidden] { display: none; }
 
 /* Packages */
 .packages-section { max-width: 1280px; margin: 0 auto; }
@@ -154,6 +158,13 @@ h1, h2, h3 { font-family: var(--font-head); font-weight: 400; }
   padding: 30px; border: 1px solid rgba(26,26,26,.35); text-align: left;
   font-size: 1.35rem; font-style: italic; line-height: 1.5;
 }
+.testimonial cite { display: block; margin-top: 18px; font-size: 1rem; font-style: normal; font-weight: 600; }
+.faq-section { background: #fbfaf8; }
+.faq-list { max-width: 900px; margin: 0 auto; text-align: left; }
+.faq-list details { padding: 16px 4px; border-bottom: 1px solid rgba(26,26,26,.2); }
+.faq-list summary { font: 500 1.25rem var(--head); cursor: pointer; }
+.faq-list details p { margin: 12px 0 0; }
+.faq-list a { color: inherit; }
 .policies-section { background: #e5e3e0; }
 .policies-grid { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; text-align: left; }
 .policy { padding: 22px; border-top: 1px solid rgba(26,26,26,.45); }
@@ -206,19 +217,19 @@ h1, h2, h3 { font-family: var(--font-head); font-weight: 400; }
 .booking-submit:disabled { opacity: .6; cursor: wait; }
 .booking-status { min-height: 1.6em; font-size: .95rem; }
 .addons-field { min-width: 0; margin: 0; padding: 16px; border: 1px solid rgba(26,26,26,.25); }
-.addons-field legend { padding: 0 8px; font: 500 1.2rem var(--head); }
+.addons-field legend { padding: 0 8px; font: 500 1.2rem var(--font-head); }
 .addons-field > p { margin: 0 0 10px; }
 .addons-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.addon-option { display: flex !important; flex-direction: row !important; align-items: center; gap: 10px !important; padding: 10px; border: 1px solid var(--line); background: #fff8; }
+.addon-option { display: flex !important; flex-direction: row !important; align-items: center; gap: 10px !important; padding: 10px; border: 1px solid rgba(26,26,26,.18); background: #fff8; }
 .addon-option input { width: auto; min-height: 0; accent-color: var(--gold); }
-.estimated-total { margin: 0; padding: 14px 16px; background: #1a1a1a; color: #efeeec; font: 500 1.2rem var(--head); }
-.inquiry-success { padding: clamp(24px, 5vw, 48px); background: var(--paper); border: 1px solid var(--line); border-top: 3px solid var(--gold); }
-.inquiry-success h2 { margin: 0 0 10px; font: 400 clamp(2rem, 5vw, 3rem) var(--head); }
-.inquiry-summary { margin: 24px 0; padding: 18px; border: 1px solid var(--line); background: #fff; }
+.estimated-total { margin: 0; padding: 14px 16px; background: #1a1a1a; color: #efeeec; font: 500 1.2rem var(--font-head); }
+.inquiry-success { padding: clamp(24px, 5vw, 48px); background: #fbfaf8; border: 1px solid #dedbd5; border-top: 3px solid #b08d57; }
+.inquiry-success h2 { margin: 0 0 10px; font: 400 clamp(2rem, 5vw, 3rem) var(--font-head); }
+.inquiry-summary { margin: 24px 0; padding: 18px; border: 1px solid #dedbd5; background: #fff; }
 .inquiry-summary p { margin: 6px 0; overflow-wrap: anywhere; }
 .inquiry-summary strong { font-weight: 600; }
 .copy-booking-code { min-height: 36px; margin-left: 12px; padding: 4px 12px; font-size: .78rem; }
-.inquiry-success h3 { margin: 22px 0 8px; font: 500 1.35rem var(--head); }
+.inquiry-success h3 { margin: 22px 0 8px; font: 500 1.35rem var(--font-head); }
 .inquiry-success ol { padding-left: 24px; }
 .date-not-reserved { padding: 12px 14px; border-left: 3px solid #d99116; background: #f3e3c2; font-weight: 600; }
 .inquiry-contact-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 22px; }
@@ -272,4 +283,6 @@ footer { text-align: center; padding: 24px; font-size: 14px; background: #000; c
   .addons-list { grid-template-columns: 1fr; }
   .policies-grid { grid-template-columns: 1fr; gap: 10px; }
   .testimonials-grid { grid-template-columns: 1fr; gap: 16px; }
+  .wedding-grid { grid-template-columns: 1fr; }
+  .wedding img { height: 360px; }
 }
