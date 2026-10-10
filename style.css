@@ -236,6 +236,14 @@ h1, h2, h3 { font-family: var(--font-head); font-weight: 400; }
 .inquiry-contact-actions a:not(.btn) { padding: 8px 0; }
 .privacy-note { max-width: 700px; margin: 20px auto 0; font-size: .9rem; opacity: .78; text-align: center; }
 .booking-back { display: block; width: fit-content; margin: 30px auto 0; color: var(--ink); text-decoration: none; }
+.photos-page { min-height: calc(100vh - 66px); max-width: 780px; margin: 0 auto; padding: 130px 5% 70px; }
+.photos-page h1 { text-align: center; font-size: clamp(2.2rem, 6vw, 3.6rem); }
+.photos-form { display: grid; gap: 18px; max-width: 520px; margin: 30px auto 0; }
+.photos-form label { display: flex; flex-direction: column; gap: 6px; }
+.photos-form input { min-height: 48px; padding: 10px 12px; border: 1px solid rgba(26,26,26,.5); background: rgba(255,255,255,.45); color: var(--ink); font: inherit; }
+.photos-result { display: grid; justify-items: center; gap: 12px; margin: 28px auto 0; padding: 28px; border: 1px solid rgba(26,26,26,.2); background: #fbfaf8; text-align: center; }
+.photos-result h2 { font-size: 1.6rem; }
+.hidden { display: none !important; }
 
 footer { text-align: center; padding: 24px; font-size: 14px; background: #000; color: #888; }
 

@@ -56,7 +56,7 @@ menu.addEventListener("click", (event) => {
 
   function build() {
     pages = Math.max(1, Math.round(maxScroll() / stepSize()) + 1);
-    dotsWrap.innerHTML = "";
+    dotsWrap.replaceChildren();
     for (let i = 0; i < pages; i++) {
       const d = document.createElement("button");
       d.type = "button";

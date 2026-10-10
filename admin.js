@@ -671,9 +671,16 @@
         if (addedPaths.length) await client.storage.from(galleryBucket).remove(addedPaths);
         return { error: "Choose JPG, PNG, or WebP photos no larger than 15 MB each." };
       }
-      const path = photoPathFor(weddingId, file);
-      const { error: uploadError } = await client.storage.from(galleryBucket).upload(path, file, {
-        cacheControl: "31536000", contentType: file.type, upsert: false
+      let resized;
+      try {
+        resized = await resizeGalleryImage(file);
+      } catch {
+        if (addedPaths.length) await client.storage.from(galleryBucket).remove(addedPaths);
+        return { error: "A photo could not be resized in this browser. Try a JPEG, PNG, or WebP image." };
+      }
+      const path = photoPathFor(weddingId, resized);
+      const { error: uploadError } = await client.storage.from(galleryBucket).upload(path, resized, {
+        cacheControl: "31536000", contentType: "image/jpeg", upsert: false
       });
       if (uploadError) {
         if (addedPaths.length) await client.storage.from(galleryBucket).remove(addedPaths);
@@ -688,6 +695,25 @@
       return { error: "Photos uploaded, but the gallery could not be saved. Please try again." };
     }
     return { error: null };
+  }
+
+  async function resizeGalleryImage(file) {
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    try {
+      const scale = Math.min(1, 2000 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const context = canvas.getContext("2d", { alpha: false });
+      if (!context) throw new Error("Canvas is unavailable");
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((result) => result ? resolve(result) : reject(new Error("JPEG encoding failed")), "image/jpeg", 0.82);
+      });
+      return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg", lastModified: file.lastModified });
+    } finally {
+      bitmap.close();
+    }
   }
 
   function renderWeddingGalleries() {

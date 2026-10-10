@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://rmaswjkqiorjswhzjcte.supabase.co; connect-src 'self' https://rmaswjkqiorjswhzjcte.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Wedding gallery | Dan Visuals</title>
+  <meta name="description" content="Wedding photography by Dan Visuals.">
+  <meta property="og:title" content="Wedding gallery | Dan Visuals">
+  <meta property="og:description" content="Wedding photography highlights by Dan Visuals.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://gabywayby.github.io/danvisuals/wedding-gallery.html">
+  <meta property="og:image" content="https://gabywayby.github.io/danvisuals/images/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400;500;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="gallery-page managed-gallery-page">
+    <a class="back" href="index.html#portfolio">← Back to weddings</a>
+    <h1 id="weddingTitle">Wedding gallery</h1>
+    <span class="date" id="weddingDetails"></span>
+    <p class="gallery-status" id="galleryStatus" role="status" aria-live="polite">Loading gallery…</p>
+    <div class="masonry" id="managedGallery"></div>
+  </main>
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Wedding photo viewer">
+    <button class="close" type="button" aria-label="Close">×</button>
+    <button class="prev" type="button" aria-label="Previous photo">‹</button>
+    <img src="" alt="">
+    <button class="next" type="button" aria-label="Next photo">›</button>
+  </div>
+  <footer>© <span id="year"></span> Dan Visuals</footer>
+  <script src="vendor/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="wedding-gallery.js"></script>
+</body>
+</html>

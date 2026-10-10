@@ -1,0 +1,63 @@
+.admin-workspace { display: block; margin-top: 28px; }
+.admin-main { padding-left: max(84px, 5%); }
+.admin-main { transition: padding-left .2s ease; }
+body:has(.admin-sidebar:hover) .admin-main,
+body:has(.admin-sidebar:focus-within) .admin-main { padding-left: max(238px, 5%); }
+.admin-sidebar { position: fixed; z-index: 30; inset: 74px auto 0 0; display: flex; flex-direction: column; gap: 8px; width: 64px; overflow: hidden; padding: 18px 8px; border-right: 1px solid var(--line); background: var(--paper); transition: width .2s ease; }
+.admin-sidebar:hover, .admin-sidebar:focus-within { width: 218px; }
+.sidebar-link { display: flex; flex: 0 0 46px; align-items: center; gap: 14px; width: 100%; min-width: 0; padding: 0 12px; overflow: hidden; border: 0; border-left: 3px solid transparent; border-radius: 4px; color: var(--ink); background: transparent; text-align: left; font-weight: 600; letter-spacing: .06em; white-space: nowrap; cursor: pointer; }
+.sidebar-link svg { display: block; flex: 0 0 20px; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+.sidebar-link span { width: 0; overflow: hidden; opacity: 0; transition: opacity .15s ease; }
+.admin-sidebar:hover .sidebar-link span, .admin-sidebar:focus-within .sidebar-link span { width: auto; opacity: 1; }
+.sidebar-link:hover, .sidebar-link:focus-visible { color: var(--ink); background: var(--cream); }
+.sidebar-link.is-active { border-left-color: var(--gold); color: var(--ink); background: var(--cream); }
+.admin-views { min-width: 0; }
+.admin-views .view-panel { padding-top: 0; }
+.admin-views .view-toolbar h2 { font-size: 1.8rem; }
+.admin-views .view-toolbar > div p { margin: 4px 0 0; color: var(--muted); }
+.wedding-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 20px 0; padding: 20px; border: 1px solid var(--line); border-radius: var(--r, 6px); background: var(--paper); }
+.wedding-form label { min-width: 0; }
+.wedding-form .gallery-location, .wedding-form .gallery-files { grid-column: 1 / -1; }
+.wedding-form .gallery-files input { height: auto; min-height: 44px; padding: 8px; }
+.wedding-form small { color: var(--muted); font-weight: 400; }
+.wedding-form .gallery-submit { justify-self: start; }
+.wedding-gallery-list { display: grid; gap: 16px; }
+.wedding-gallery-card { min-width: 0; padding: 18px; border: 1px solid var(--line); border-top: 3px solid var(--gold); border-radius: var(--r, 6px); background: var(--paper); }
+.wedding-gallery-top { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 14px; align-items: center; }
+.wedding-gallery-heading { min-width: 0; }
+.wedding-gallery-heading h3 { overflow: hidden; font-size: 1.4rem; text-overflow: ellipsis; white-space: nowrap; }
+.wedding-gallery-heading p { margin: 3px 0 0; color: var(--muted); }
+.gallery-publish-toggle { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.gallery-publish-toggle input { width: auto; min-height: auto; height: auto; accent-color: var(--green); }
+.gallery-delete-wedding { height: 36px; min-height: 36px; padding: 0 12px; font-size: .7rem; }
+.wedding-photo-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; margin: 16px 0; }
+.wedding-photo-tile { position: relative; overflow: hidden; aspect-ratio: 1; background: #e3dfd8; }
+.wedding-photo-tile img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.wedding-photo-delete { position: absolute; top: 5px; right: 5px; display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 50%; color: #fff; background: #1a1a1acc; font: 500 1.35rem/1 var(--body); cursor: pointer; }
+.wedding-photo-delete:hover { background: var(--red); }
+.wedding-photo-upload { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
+.wedding-photo-upload label { flex: 1 1 230px; }
+.wedding-photo-upload input { height: auto; min-height: 42px; padding: 7px; }
+.wedding-photo-upload .button { height: 40px; }
+
+@media (max-width: 900px) {
+  .admin-sidebar { inset-block-start: 62px; width: 58px; padding-inline: 7px; }
+  .admin-sidebar:hover, .admin-sidebar:focus-within { width: 200px; }
+  .admin-main { padding-left: 82px; }
+  body:has(.admin-sidebar:hover) .admin-main,
+  body:has(.admin-sidebar:focus-within) .admin-main { padding-left: 220px; }
+}
+@media (max-width: 600px) {
+  .wedding-form { grid-template-columns: 1fr; padding: 14px; }
+  .wedding-form .gallery-location, .wedding-form .gallery-files { grid-column: auto; }
+  .wedding-gallery-card { padding: 14px; }
+  .wedding-gallery-top { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  .wedding-gallery-heading { grid-column: 1 / -1; }
+  .gallery-publish-toggle { grid-column: 1; }
+  .gallery-delete-wedding { grid-column: 2; grid-row: 2; }
+  .wedding-photo-list { grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-sidebar, .sidebar-link span { transition: none; }
+}

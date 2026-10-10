@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://rmaswjkqiorjswhzjcte.supabase.co; connect-src 'self' https://rmaswjkqiorjswhzjcte.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Find my photos | Dan Visuals</title>
+  <meta name="description" content="Find your delivered Dan Visuals photo gallery with your booking code and email address.">
+  <meta property="og:title" content="Find your photos | Dan Visuals">
+  <meta property="og:description" content="Use your booking code and email to find your delivered Dan Visuals photo gallery.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://gabywayby.github.io/danvisuals/photos.html">
+  <meta property="og:image" content="https://gabywayby.github.io/danvisuals/images/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400;500;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="vendor/supabase.js" defer></script>
+  <script src="config.js" defer></script>
+  <script src="photos.js" defer></script>
+</head>
+<body>
+  <header class="nav">
+    <a href="index.html#home" class="logo"><img src="images/logo.png" alt="Dan Visuals"></a>
+    <a class="nav-book" href="index.html#portfolio">Portfolio</a>
+  </header>
+  <main class="photos-page">
+    <p class="booking-eyebrow">Your gallery</p>
+    <h1>Find my photos</h1>
+    <p class="booking-intro">Enter the booking code from your inquiry confirmation and the email address used when booking.</p>
+    <form id="photosForm" class="photos-form">
+      <label>Booking code<input name="code" type="text" minlength="10" maxlength="10" pattern="[A-HJ-NP-Z2-9]{10}" autocomplete="off" required></label>
+      <label>Email address<input name="email" type="email" autocomplete="email" required></label>
+      <button class="btn" type="submit">Find gallery</button>
+      <p id="photosMessage" class="booking-status" role="status" aria-live="polite"></p>
+    </form>
+    <section id="photosResult" class="photos-result hidden" aria-live="polite"></section>
+    <a class="booking-back" href="index.html">← Back to Dan Visuals</a>
+  </main>
+  <footer>© <span id="year"></span> Dan Visuals</footer>
+</body>
+</html>
