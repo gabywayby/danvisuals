@@ -41,7 +41,12 @@
         <article class="stat-card"><span>Confirmed</span><strong id="statConfirmed">0</strong></article>
         <article class="stat-card"><span>Upcoming</span><strong id="statUpcoming">0</strong></article>
         <article class="stat-card"><span>Total</span><strong id="statTotal">0</strong></article>
+        <article class="stat-card stat-overdue"><span>Overdue</span><strong id="statOverdue">0</strong></article>
       </div>
+      <section class="next-week-panel" aria-labelledby="nextWeekHeading">
+        <h2 id="nextWeekHeading">Next 7 days</h2>
+        <div id="nextWeekList" class="next-week-list"><p class="next-week-empty">No confirmed bookings in the next 7 days.</p></div>
+      </section>
       <section class="blocked-panel" aria-labelledby="blockedHeading">
         <div><h2 id="blockedHeading">Unavailable dates</h2><p>These dates can’t be requested on the public form.</p></div>
         <form id="blockedDateForm" class="blocked-date-form"><label for="blockedDateInput">Block a date</label><input id="blockedDateInput" name="blocked_date" type="date" required><button class="button add-date-button" type="submit" aria-label="Add unavailable date" title="Add unavailable date"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2"/></svg></button></form>
@@ -58,6 +63,9 @@
           <button class="sidebar-link" id="galleryTab" type="button" aria-label="Gallery">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15.5 9h.01"/></svg><span>Gallery</span>
           </button>
+          <button class="sidebar-link" id="revenueTab" type="button" aria-label="Revenue"><b class="sidebar-icon">₱</b><span>Revenue</span></button>
+          <button class="sidebar-link" id="clientsTab" type="button" aria-label="Clients"><b class="sidebar-icon">C</b><span>Clients</span></button>
+          <button class="sidebar-link" id="settingsTab" type="button" aria-label="Settings"><b class="sidebar-icon">⚙</b><span>Settings</span></button>
         </nav>
         <div class="admin-views">
           <section id="bookingsView" class="view-panel" aria-labelledby="bookingsTab">
@@ -92,9 +100,32 @@
             <div id="weddingGalleryList" class="wedding-gallery-list"></div>
             <p id="emptyWeddings" class="empty-state hidden">No managed galleries yet.</p>
           </section>
+          <section id="revenueView" class="view-panel hidden" aria-labelledby="revenueTab">
+            <div class="view-toolbar"><div><h2>Revenue</h2><p>Totals are based on recorded payments and bookings.</p></div></div>
+            <div class="revenue-cards">
+              <article class="stat-card"><span>Collected this month</span><strong id="revenueCollected">PHP 0</strong></article>
+              <article class="stat-card"><span>Total unpaid</span><strong id="revenueUnpaid">PHP 0</strong></article>
+              <article class="stat-card"><span>Bookings this month</span><strong id="revenueBookings">0</strong></article>
+            </div>
+            <div class="revenue-columns">
+              <section class="revenue-panel"><h3>By package</h3><div class="revenue-package-table" id="revenueByPackage"></div></section>
+              <section class="revenue-panel"><h3>Collected · last 6 months</h3><div class="revenue-chart" id="revenueChart"></div></section>
+            </div>
+          </section>
+          <section id="clientsView" class="view-panel hidden" aria-labelledby="clientsTab">
+            <div class="view-toolbar"><div><h2>Clients</h2><p>Bookings grouped by client email.</p></div><label class="clients-search">Search clients<input id="clientSearch" type="search" placeholder="Name, email, or phone"></label></div>
+            <div class="client-list" id="clientList"></div>
+            <p id="emptyClients" class="empty-state hidden">No clients match your search.</p>
+          </section>
+          <section id="settingsView" class="view-panel hidden" aria-labelledby="settingsTab">
+            <div class="view-toolbar"><div><h2>Settings</h2><p>Manage available booking add-ons.</p></div></div>
+            <div class="addon-admin-list" id="addonAdminList"></div>
+            <p id="addonAdminMessage" class="message" role="status" aria-live="polite"></p>
+          </section>
         </div>
       </div>
     </section>
+    <section id="invoicePrint" class="invoice-print" aria-label="Printable booking invoice"></section>
   </main>
 </body>
 </html>

@@ -20,9 +20,27 @@
   const weddingGalleryList = document.getElementById("weddingGalleryList");
   const galleryMessage = document.getElementById("galleryMessage");
   const emptyWeddings = document.getElementById("emptyWeddings");
+  const nextWeekList = document.getElementById("nextWeekList");
+  const clientList = document.getElementById("clientList");
+  const clientSearch = document.getElementById("clientSearch");
+  const emptyClients = document.getElementById("emptyClients");
+  const addonAdminList = document.getElementById("addonAdminList");
+  const addonAdminMessage = document.getElementById("addonAdminMessage");
+  const invoicePrint = document.getElementById("invoicePrint");
   const statusOptions = ["new", "confirmed", "completed", "cancelled"];
   const galleryCategories = ["wedding", "debut", "birthday", "maternity", "engagement", "other"];
   const categoryLabel = (value) => value.charAt(0).toUpperCase() + value.slice(1);
+  const TURNAROUND = { "wedding-standard": 4, "wedding-premium": 2, debut: 3, birthday: 3, maternity: 3, engagement: 3, other: 3 };
+  const PACKAGE_PRICES = { "wedding-standard": 8000, "wedding-premium": 10000, debut: 5000, birthday: 4000, maternity: 3000, engagement: 3000 };
+  const dueDate = (booking) => {
+    const date = new Date(`${booking.event_date}T00:00`);
+    date.setDate(date.getDate() + (TURNAROUND[booking.package] ?? 3));
+    return date;
+  };
+  const toE164 = (phone) => {
+    const digits = String(phone || "").replace(/\D/g, "");
+    return digits.startsWith("63") ? `+${digits}` : digits.startsWith("0") ? `+63${digits.slice(1)}` : `+${digits}`;
+  };
   const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const client = configured
     ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY)
@@ -31,6 +49,7 @@
   let blockedDates = [];
   let weddings = [];
   let weddingPhotos = new Map();
+  let addons = [];
   let selectedDay;
   let activeBookingFilter = "all";
   let month = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -80,6 +99,258 @@
     document.getElementById("statConfirmed").textContent = bookings.filter((item) => item.status === "confirmed").length;
     document.getElementById("statUpcoming").textContent = bookings.filter((item) => item.event_date >= today && !["cancelled", "completed"].includes(item.status)).length;
     document.getElementById("statTotal").textContent = bookings.length;
+    document.getElementById("statOverdue").textContent = bookings.filter((booking) =>
+      ["confirmed", "completed"].includes(booking.status) && !booking.delivery_url && dateKey(dueDate(booking)) < today
+    ).length;
+    renderNextWeek();
+    renderRevenue();
+    renderClients();
+  }
+
+  function renderNextWeek() {
+    nextWeekList.replaceChildren();
+    const today = localDate(dateKey(new Date()));
+    const lastDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 6);
+    const upcoming = bookings.filter((booking) => booking.status === "confirmed"
+      && booking.event_date >= dateKey(today) && booking.event_date <= dateKey(lastDay))
+      .sort((a, b) => a.event_date.localeCompare(b.event_date) || a.event_time.localeCompare(b.event_time));
+    if (!upcoming.length) {
+      nextWeekList.append(make("p", "next-week-empty", "No confirmed bookings in the next 7 days."));
+      return;
+    }
+    upcoming.forEach((booking) => {
+      const chip = make("button", "next-week-chip");
+      chip.type = "button";
+      chip.dataset.bookingId = booking.id;
+      chip.append(make("strong", "", formatDate(booking.event_date)), make("span", "", booking.name), make("small", "", booking.event));
+      nextWeekList.append(chip);
+    });
+  }
+
+  function deliveryState(booking) {
+    if (booking.delivery_url) return { text: "Delivered", className: "delivery-state is-delivered" };
+    if (!["confirmed", "completed"].includes(booking.status)) return null;
+    const deadline = dueDate(booking);
+    const today = localDate(dateKey(new Date()));
+    const deadlineKey = dateKey(deadline);
+    const todayKey = dateKey(today);
+    if (deadlineKey < todayKey) {
+      const days = Math.floor((today - deadline) / 86400000);
+      return { text: `Overdue ${days}d`, className: "delivery-state is-overdue" };
+    }
+    if (deadlineKey === todayKey) return { text: "Due today", className: "delivery-state is-due-today" };
+    return { text: `Due ${formatDate(deadlineKey)}`, className: "delivery-state is-upcoming" };
+  }
+
+  const packageName = (value) => ({ "wedding-standard": "Wedding Standard", "wedding-premium": "Wedding Premium", debut: "Debut", birthday: "Birthday", maternity: "Maternity", engagement: "Engagement", other: "Other" }[value] || value || "");
+  const addonDetails = (booking) => (booking.addons || []).map((code) => addons.find((item) => item.code === code) || { code, label: code, price: 0 });
+  const displayDateTime = (date, time) => `${date.replaceAll("-", "")}T${String(time || "00:00").slice(0, 5).replace(":", "")}00`;
+  const addHoursWallTime = (date, time, hours) => {
+    const [year, monthNumber, day] = date.split("-").map(Number);
+    const [hour, minute] = String(time || "00:00").slice(0, 5).split(":").map(Number);
+    const value = new Date(Date.UTC(year, monthNumber - 1, day, hour + hours, minute));
+    const pad = (part) => String(part).padStart(2, "0");
+    return `${value.getUTCFullYear()}${pad(value.getUTCMonth() + 1)}${pad(value.getUTCDate())}T${pad(value.getUTCHours())}${pad(value.getUTCMinutes())}00`;
+  };
+  const escapeIcs = (value) => String(value || "").replace(/\\/g, "\\\\").replace(/\r?\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
+
+  function googleCalendarUrl(booking) {
+    const start = displayDateTime(booking.event_date, booking.event_time);
+    const end = addHoursWallTime(booking.event_date, booking.event_time, 4);
+    const detailText = `Package: ${packageName(booking.package)}${addonDetails(booking).length ? ` + ${addonDetails(booking).map((item) => item.label).join(", ")}` : ""}\nBooking code: ${booking.booking_code || ""}`;
+    const params = new URLSearchParams({ action: "TEMPLATE", text: `${booking.event} · ${booking.name}`, dates: `${start}/${end}`, ctz: "Asia/Manila", location: booking.location || "", details: detailText });
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  }
+
+  function downloadIcs(booking) {
+    const start = displayDateTime(booking.event_date, booking.event_time);
+    const end = addHoursWallTime(booking.event_date, booking.event_time, 4);
+    const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    const contents = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Dan Visuals//Booking//EN", "BEGIN:VEVENT", `UID:${escapeIcs(booking.id)}@danvisuals`, `DTSTAMP:${stamp}`, `DTSTART;TZID=Asia/Manila:${start}`, `DTEND;TZID=Asia/Manila:${end}`, `SUMMARY:${escapeIcs(`${booking.event} - ${booking.name}`)}`, `LOCATION:${escapeIcs(booking.location)}`, `DESCRIPTION:${escapeIcs(`Package: ${packageName(booking.package)}\nBooking code: ${booking.booking_code || ""}`)}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+    const url = URL.createObjectURL(new Blob([contents], { type: "text/calendar;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    const safeFilename = String(booking.booking_code || booking.id).replace(/[^A-Za-z0-9-]/g, "");
+    link.download = `dan-visuals-${safeFilename}.ics`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function printInvoice(booking) {
+    invoicePrint.replaceChildren();
+    const heading = make("h1", "", "Dan Visuals");
+    const title = make("h2", "", "Booking invoice");
+    const code = make("p", "", `Booking code: ${booking.booking_code || "—"}`);
+    const clientHeading = make("h3", "", "Client");
+    const clientDetails = make("p", "", `${booking.name}\n${booking.email}\n${booking.phone}`);
+    const eventHeading = make("h3", "", "Event");
+    const eventDetails = make("p", "", `${booking.event} · ${formatDate(booking.event_date)} · ${booking.event_time}\n${booking.location}`);
+    const packageHeading = make("h3", "", "Package and extras");
+    const items = document.createElement("ul");
+    const basePrice = PACKAGE_PRICES[booking.package];
+    items.append(make("li", "", `${packageName(booking.package)} · ${basePrice == null ? "To be discussed" : formatPhp(basePrice)}`));
+    addonDetails(booking).forEach((addon) => items.append(make("li", "", `${addon.label} · ${formatPhp(addon.price)}`)));
+    const total = make("p", "invoice-total", `Total: ${formatPhp(booking.total_price)}`);
+    const paid = make("p", "", `Payment: ${booking.deposit_paid ? `Paid${booking.paid_at ? ` on ${new Date(booking.paid_at).toLocaleDateString()}` : ""}` : "Unpaid"}`);
+    const phone = make("p", "", "Dan Visuals · (+63) 945-965-6105");
+    invoicePrint.append(heading, title, code, clientHeading, clientDetails, eventHeading, eventDetails, packageHeading, items, total, paid, phone);
+    window.print();
+  }
+
+  function renderRevenue() {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const collectedThisMonth = bookings.filter((booking) => booking.deposit_paid && booking.paid_at
+      && new Date(booking.paid_at) >= monthStart && new Date(booking.paid_at) < nextMonthStart)
+      .reduce((sum, booking) => sum + Number(booking.total_price || 0), 0);
+    const unpaid = bookings.filter((booking) => !booking.deposit_paid && booking.status !== "cancelled")
+      .reduce((sum, booking) => sum + Number(booking.total_price || 0), 0);
+    const countThisMonth = bookings.filter((booking) => {
+      const created = new Date(booking.created_at);
+      return created >= monthStart && created < nextMonthStart;
+    }).length;
+    document.getElementById("revenueCollected").textContent = formatPhp(collectedThisMonth);
+    document.getElementById("revenueUnpaid").textContent = formatPhp(unpaid);
+    document.getElementById("revenueBookings").textContent = String(countThisMonth);
+
+    const byPackage = new Map();
+    bookings.forEach((booking) => {
+      const item = byPackage.get(booking.package) || { count: 0, total: 0 };
+      item.count += 1;
+      item.total += Number(booking.total_price || 0);
+      byPackage.set(booking.package, item);
+    });
+    const table = document.getElementById("revenueByPackage");
+    table.replaceChildren();
+    const packageTable = document.createElement("table");
+    packageTable.className = "revenue-package-table";
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    ["Package", "Bookings", "Total"].forEach((text) => headerRow.append(make("th", "", text)));
+    thead.append(headerRow);
+    const tbody = document.createElement("tbody");
+    [...byPackage.entries()].sort(([a], [b]) => packageName(a).localeCompare(packageName(b))).forEach(([packageCode, item]) => {
+      const row = document.createElement("tr");
+      row.append(make("td", "", packageName(packageCode)), make("td", "", String(item.count)), make("td", "", formatPhp(item.total)));
+      tbody.append(row);
+    });
+    packageTable.append(thead, tbody);
+    table.append(packageTable);
+    if (!byPackage.size) table.append(make("p", "day-panel-empty", "No booking revenue yet."));
+
+    const chart = document.getElementById("revenueChart");
+    chart.replaceChildren();
+    const months = [];
+    for (let offset = 5; offset >= 0; offset -= 1) {
+      const start = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+      const finish = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+      const total = bookings.filter((booking) => booking.deposit_paid && booking.paid_at
+        && new Date(booking.paid_at) >= start && new Date(booking.paid_at) < finish)
+        .reduce((sum, booking) => sum + Number(booking.total_price || 0), 0);
+      months.push({ label: start.toLocaleDateString(undefined, { month: "short" }), total });
+    }
+    const maximum = Math.max(1, ...months.map((item) => item.total));
+    months.forEach((item) => {
+      const bar = make("div", "revenue-bar-row");
+      bar.append(make("span", "", item.label));
+      const track = document.createElement("progress");
+      track.className = "revenue-bar-track";
+      track.max = 100;
+      track.value = Math.max(0, item.total / maximum * 100);
+      track.setAttribute("aria-label", `${item.label} collected`);
+      bar.append(track, make("strong", "", formatPhp(item.total)));
+      chart.append(bar);
+    });
+  }
+
+  function renderClients() {
+    const query = clientSearch.value.trim().toLocaleLowerCase();
+    const grouped = new Map();
+    bookings.forEach((booking) => {
+      const key = String(booking.email || "").trim().toLocaleLowerCase();
+      const list = grouped.get(key) || [];
+      list.push(booking);
+      grouped.set(key, list);
+    });
+    clientList.replaceChildren();
+    let shown = 0;
+    [...grouped.values()].forEach((items) => {
+      items.sort((a, b) => b.event_date.localeCompare(a.event_date));
+      const latest = items[0];
+      const totalPaid = items.filter((booking) => booking.deposit_paid).reduce((sum, booking) => sum + Number(booking.total_price || 0), 0);
+      const searchable = [latest.name, latest.email, latest.phone].join(" ").toLocaleLowerCase();
+      if (query && !searchable.includes(query)) return;
+      shown += 1;
+      const details = make("details", "client-item");
+      const summary = make("summary", "client-summary");
+      summary.append(make("strong", "", latest.name || "Client"), make("span", "", latest.email || ""), make("span", "", latest.phone || ""), make("span", "", `${items.length} booking${items.length === 1 ? "" : "s"}`), make("span", "", `Last event ${formatDate(latest.event_date)}`), make("strong", "", `Paid ${formatPhp(totalPaid)}`));
+      details.append(summary);
+      const list = make("div", "client-bookings");
+      items.forEach((booking) => {
+        const row = make("p", "", `${formatDate(booking.event_date)} · ${booking.event} · ${booking.status} · ${booking.deposit_paid ? "Paid" : "Unpaid"}`);
+        list.append(row);
+      });
+      details.append(list);
+      clientList.append(details);
+    });
+    emptyClients.classList.toggle("hidden", shown > 0);
+  }
+
+  async function loadAddonSettings(showError = false) {
+    const { data, error } = await client.from("addons").select("code, label, price, active, sort").order("sort", { ascending: true });
+    if (error) {
+      if (showError) addonAdminMessage.textContent = "Couldn’t load add-ons. Confirm migration 017 and admin access.";
+      return false;
+    }
+    addons = data || [];
+    renderAddonSettings();
+    return true;
+  }
+
+  function renderAddonSettings() {
+    addonAdminList.replaceChildren();
+    addons.forEach((addon) => {
+      const row = make("form", "addon-admin-row");
+      row.dataset.code = addon.code;
+      const code = make("strong", "addon-code", addon.code);
+      const label = document.createElement("label");
+      label.append(document.createTextNode("Label"));
+      const labelInput = document.createElement("input");
+      labelInput.name = "label";
+      labelInput.value = addon.label;
+      label.append(labelInput);
+      const price = document.createElement("label");
+      price.append(document.createTextNode("Price"));
+      const priceInput = document.createElement("input");
+      priceInput.name = "price";
+      priceInput.type = "number";
+      priceInput.min = "0";
+      priceInput.step = "0.01";
+      priceInput.value = String(addon.price);
+      price.append(priceInput);
+      const sort = document.createElement("label");
+      sort.append(document.createTextNode("Sort"));
+      const sortInput = document.createElement("input");
+      sortInput.name = "sort";
+      sortInput.type = "number";
+      sortInput.step = "1";
+      sortInput.value = String(addon.sort);
+      sort.append(sortInput);
+      const activeLabel = document.createElement("label");
+      activeLabel.className = "addon-active-toggle";
+      const active = document.createElement("input");
+      active.name = "active";
+      active.type = "checkbox";
+      active.checked = Boolean(addon.active);
+      activeLabel.append(active, document.createTextNode(" Active"));
+      const save = make("button", "button save-addon", "Save");
+      save.type = "submit";
+      row.append(code, label, price, sort, activeLabel, save);
+      addonAdminList.append(row);
+    });
   }
 
   function renderTable() {
@@ -105,6 +376,11 @@
       info.append(make("p", "booking-meta", `${booking.package || ""} · ${booking.event || ""}`));
       info.append(make("p", "booking-contact", `${booking.phone || ""} · ${booking.email || ""}`));
       info.append(make("p", "booking-location", booking.location || ""));
+      const deliveryBadge = deliveryState(booking);
+      if (deliveryBadge) info.append(make("span", deliveryBadge.className, deliveryBadge.text));
+      if (booking.status === "new" && Date.now() - new Date(booking.created_at).getTime() > 48 * 60 * 60 * 1000) {
+        info.append(make("span", "follow-up-badge", "Needs reply"));
+      }
       if (hasDateConflict(booking.event_date)) {
         info.append(make("span", "date-conflict", "⚠ Date conflict"));
       }
@@ -119,6 +395,25 @@
       });
       select.value = status;
       side.append(select);
+      const contactActions = make("div", "contact-actions");
+      const phone = toE164(booking.phone);
+      const email = String(booking.email || "");
+      const links = [
+        ["Call", `tel:${phone}`], ["SMS", `sms:${phone}`],
+        ["Viber", `viber://chat?number=%2B${encodeURIComponent(phone.replace(/\D/g, ""))}`],
+        ["Email", `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(`Booking · ${booking.event || "Inquiry"}`)}`]
+      ];
+      links.forEach(([text, href]) => {
+        const link = make("a", "button contact-button", text);
+        link.href = href;
+        if (text === "Email") link.setAttribute("aria-label", `Email ${booking.name || "client"}`);
+        contactActions.append(link);
+      });
+      const copyMessage = make("button", "button contact-button copy-message", "Copy message");
+      copyMessage.type = "button";
+      copyMessage.dataset.bookingId = booking.id;
+      contactActions.append(copyMessage);
+      side.append(contactActions);
       const actions = make("div", "row-actions");
       const deleteButton = make("button", "button button-danger delete-booking");
       deleteButton.type = "button";
@@ -201,6 +496,27 @@
       saveNotes.textContent = "Save notes";
       notesGroup.append(notesInput, saveNotes);
       grid.append(notesGroup);
+      const reference = make("div", "extra-group wide booking-reference-group");
+      reference.append(make("h4", "", "Booking details"));
+      reference.append(make("p", "", `Booking code: ${booking.booking_code || "—"}`));
+      const extras = addonDetails(booking);
+      reference.append(make("p", "", `Add-ons: ${extras.length ? extras.map((item) => `${item.label} · ${formatPhp(item.price)}`).join(", ") : "None"}`));
+      const calendarActions = make("div", "booking-calendar-actions");
+      const calendarLink = make("a", "button", "Google Calendar");
+      calendarLink.href = googleCalendarUrl(booking);
+      calendarLink.target = "_blank";
+      calendarLink.rel = "noopener noreferrer";
+      calendarActions.append(calendarLink);
+      const icsButton = make("button", "button download-ics", ".ics");
+      icsButton.type = "button";
+      icsButton.dataset.bookingId = booking.id;
+      calendarActions.append(icsButton);
+      const invoiceButton = make("button", "button print-invoice", "Invoice");
+      invoiceButton.type = "button";
+      invoiceButton.dataset.bookingId = booking.id;
+      calendarActions.append(invoiceButton);
+      reference.append(calendarActions);
+      grid.append(reference);
       details.append(grid);
 
       card.append(dateBlock, info, side, details);
@@ -627,10 +943,11 @@
 
   async function loadBookings() {
     dashboardMessage.textContent = "Loading bookings…";
+    await loadAddonSettings();
     const allBookings = [];
     for (let start = 0; ; start += 1000) {
       const { data, error } = await client.from("bookings")
-        .select("id, created_at, package, name, phone, email, event, event_date, event_time, location, payment, status, notes, total_price, deposit_paid, balance_due, delivery_url")
+        .select("id, created_at, package, name, phone, email, event, event_date, event_time, location, payment, status, notes, addons, booking_code, total_price, deposit_paid, paid_at, balance_due, delivery_url")
         .order("event_date", { ascending: true }).order("id", { ascending: true }).range(start, start + 999);
       if (error) {
         dashboardMessage.textContent = "Couldn’t load bookings. Check the Supabase setup and admin access.";
@@ -714,6 +1031,35 @@
   });
 
   bookingsBody.addEventListener("click", async (event) => {
+    const copyButton = event.target.closest(".copy-message");
+    if (copyButton) {
+      const booking = bookings.find((item) => item.id === copyButton.dataset.bookingId);
+      if (!booking) return;
+      const extras = addonDetails(booking);
+      const addonText = extras.length ? ` + ${extras.map((item) => item.label).join(", ")}` : "";
+      const firstName = String(booking.name || "there").trim().split(/\s+/)[0];
+      const message = `Hi ${firstName}! Thank you for booking with Dan Visuals. Here are your details:\n${booking.event} - ${formatDate(booking.event_date)}, ${booking.event_time}\nLocation: ${booking.location}\nPackage: ${packageName(booking.package)}${addonText}\nTotal: ${formatPhp(booking.total_price)}\nBooking code: ${booking.booking_code || ""}\nPlease reply to confirm. Thank you!`;
+      try {
+        await navigator.clipboard.writeText(message);
+        copyButton.textContent = "Copied";
+        window.setTimeout(() => { if (copyButton.isConnected) copyButton.textContent = "Copy message"; }, 1600);
+      } catch {
+        dashboardMessage.textContent = "Couldn’t copy the message. Check clipboard permission.";
+      }
+      return;
+    }
+    const icsButton = event.target.closest(".download-ics");
+    if (icsButton) {
+      const booking = bookings.find((item) => item.id === icsButton.dataset.bookingId);
+      if (booking) downloadIcs(booking);
+      return;
+    }
+    const invoiceButton = event.target.closest(".print-invoice");
+    if (invoiceButton) {
+      const booking = bookings.find((item) => item.id === invoiceButton.dataset.bookingId);
+      if (booking) printInvoice(booking);
+      return;
+    }
     const deliveryButton = event.target.closest(".save-delivery");
     if (deliveryButton) {
       const row = deliveryButton.closest(".booking-card");
@@ -734,6 +1080,7 @@
       booking.delivery_url = deliveryUrl;
       dashboardMessage.textContent = "Gallery link saved.";
       renderTable();
+      renderStats();
       return;
     }
     const paymentButton = event.target.closest(".save-payment");
@@ -744,7 +1091,7 @@
       paymentButton.disabled = true;
       const { data, error } = await client.from("bookings")
         .update({ deposit_paid: depositPaid })
-        .eq("id", booking.id).select("deposit_paid, balance_due").single();
+        .eq("id", booking.id).select("deposit_paid, balance_due, paid_at").single();
       paymentButton.disabled = false;
       if (error) {
         dashboardMessage.textContent = "Payment status couldn't be saved.";
@@ -753,6 +1100,7 @@
       Object.assign(booking, data);
       dashboardMessage.textContent = "Payment status saved.";
       renderTable();
+      renderStats();
       return;
     }
     const notesButton = event.target.closest(".save-notes");
@@ -793,6 +1141,53 @@
   document.getElementById("bookingsTab").addEventListener("click", () => setTab("bookings"));
   document.getElementById("calendarTab").addEventListener("click", () => setTab("calendar"));
   document.getElementById("galleryTab").addEventListener("click", () => setTab("gallery"));
+  document.getElementById("revenueTab").addEventListener("click", () => setTab("revenue"));
+  document.getElementById("clientsTab").addEventListener("click", () => setTab("clients"));
+  document.getElementById("settingsTab").addEventListener("click", () => setTab("settings"));
+  nextWeekList.addEventListener("click", (event) => {
+    const chip = event.target.closest(".next-week-chip");
+    if (!chip) return;
+    setTab("bookings");
+    window.requestAnimationFrame(() => {
+      const card = [...bookingsBody.querySelectorAll(".booking-card")].find((item) => item.dataset.bookingId === chip.dataset.bookingId);
+      if (!card) return;
+      card.querySelector(".booking-extra").open = true;
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  });
+  clientSearch.addEventListener("input", renderClients);
+  addonAdminList.addEventListener("submit", async (event) => {
+    const form = event.target.closest(".addon-admin-row");
+    if (!form) return;
+    event.preventDefault();
+    const code = form.dataset.code;
+    const original = addons.find((item) => item.code === code);
+    if (!original) return;
+    const fields = new FormData(form);
+    const update = {
+      label: String(fields.get("label") || "").trim(),
+      price: Number(fields.get("price")),
+      active: form.elements.active.checked,
+      sort: Number(fields.get("sort"))
+    };
+    if (!update.label || !Number.isFinite(update.price) || update.price < 0 || !Number.isInteger(update.sort)) {
+      addonAdminMessage.textContent = "Enter a label, a non-negative price, and a whole-number sort order.";
+      return;
+    }
+    const button = form.querySelector("button[type='submit']");
+    button.disabled = true;
+    const { error } = await client.from("addons").update(update).eq("code", code);
+    button.disabled = false;
+    if (error) {
+      addonAdminMessage.textContent = "Add-on couldn’t be saved.";
+      return;
+    }
+    Object.assign(original, update);
+    addonAdminMessage.textContent = "Add-on saved.";
+    await loadAddonSettings();
+    renderTable();
+    renderStats();
+  });
   bookingFilters.addEventListener("click", (event) => {
     const pill = event.target.closest(".filter-pill");
     if (!pill) return;
@@ -869,7 +1264,7 @@
       ["phone", "Phone"], ["email", "Email"], ["event", "Event"], ["event_date", "Event date"],
       ["event_time", "Event time"], ["location", "Location"], ["payment", "Payment method"],
       ["status", "Status"], ["notes", "Admin notes"], ["total_price", "Total price"],
-      ["deposit_paid", "Paid"], ["balance_due", "Balance due"],
+      ["addons", "Add-ons"], ["booking_code", "Booking code"], ["deposit_paid", "Paid"], ["paid_at", "Paid at"], ["balance_due", "Balance due"],
       ["delivery_url", "Gallery delivery link"]
     ];
     const csvCell = (value) => {
@@ -891,7 +1286,7 @@
   });
 
   function setTab(active) {
-    ["bookings", "calendar", "gallery"].forEach((view) => {
+    ["bookings", "calendar", "gallery", "revenue", "clients", "settings"].forEach((view) => {
       const selected = active === view;
       const button = document.getElementById(`${view}Tab`);
       button.classList.toggle("is-active", selected);
@@ -900,6 +1295,9 @@
       document.getElementById(`${view}View`).classList.toggle("hidden", !selected);
     });
     if (active === "gallery" && client) loadWeddingGalleries();
+    if (active === "revenue") renderRevenue();
+    if (active === "clients") renderClients();
+    if (active === "settings" && client) loadAddonSettings(true);
   }
 
   if (!configured) loginMessage.textContent = "Add your Supabase project URL and anon key to config.js first.";

@@ -64,6 +64,7 @@ textarea { min-height: 96px; resize: vertical; }
 .blocked-date-list li { display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 12px; border: 1px solid #e6c9c9; border-radius: 99px; background: #faf0f0; font-size: .92rem; }
 .blocked-date-list button { width: 22px; height: 22px; border: 0; border-radius: 50%; color: var(--red); background: transparent; cursor: pointer; font-weight: 700; line-height: 1; }
 .blocked-date-list button:hover { background: var(--red); color: #fff; }
+.blocked-date-list button svg { display: block; width: 15px; height: 15px; margin: auto; }
 
 /* Tabs */
 .tab-bar { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
@@ -186,3 +187,74 @@ textarea { border-radius: var(--r); }
 /* ===== Fix: buttons never wrap or clip their text ===== */
 .button { white-space: nowrap; flex: none; width: auto; padding-left: 22px; padding-right: 22px; }
 .blocked-date-form .button { min-width: 112px; }
+
+.blocked-date-form .add-date-button { display: grid; place-items: center; width: 44px; min-width: 44px; height: 44px; padding: 0; }
+.add-date-button svg { display: block; width: 20px; height: 20px; }
+
+.mfa-qr { display: block; width: 200px; height: 200px; margin: 18px auto; padding: 8px; background: #fff; border: 1px solid var(--line); }
+.mfa-secret { display: block; margin: 8px 0 18px; padding: 10px; background: #fff; border: 1px solid var(--line); word-break: break-all; font-size: .9rem; }
+
+/* Phase C admin views and print invoice */
+.stats-grid { grid-template-columns: repeat(5, minmax(0,1fr)); }
+.stat-overdue { border-top-color: var(--red) !important; }
+.next-week-panel { margin: 0 0 28px; padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--r); background: var(--paper); }
+.next-week-panel h2 { margin-bottom: 12px; font-size: 1.25rem; }
+.next-week-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.next-week-chip { display: grid; grid-template-columns: auto 1fr; align-content: center; gap: 0 10px; min-width: 190px; min-height: 58px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r); color: var(--ink); background: #fff; text-align: left; cursor: pointer; }
+.next-week-chip strong { grid-row: span 2; align-self: center; color: var(--gold); }
+.next-week-chip span, .next-week-chip small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.next-week-empty { color: var(--muted); }
+.revenue-cards { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin: 12px 0 20px; }
+.revenue-cards .stat-card { min-width: 0; }
+.revenue-cards .stat-card strong { font-size: clamp(1.4rem, 2.8vw, 2rem); overflow-wrap: anywhere; }
+.revenue-columns { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+.revenue-panel { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: var(--r); background: var(--paper); }
+.revenue-panel h3 { margin-bottom: 12px; font-size: 1.3rem; }
+.revenue-package-table { max-height: none; border: 0; box-shadow: none; }
+.revenue-package-table th, .revenue-package-table td { position: static; min-width: 0; padding: 9px 4px; border-bottom: 1px solid var(--line); }
+.revenue-package-table th { color: var(--muted); background: transparent; font-size: .72rem; }
+.revenue-package-table th:last-child, .revenue-package-table td:last-child { text-align: right; }
+.revenue-chart { display: grid; gap: 10px; }
+.revenue-bar-row { display: grid; grid-template-columns: 38px minmax(0,1fr) minmax(82px,auto); gap: 8px; align-items: center; }
+.revenue-bar-row strong { text-align: right; font-size: .82rem; }
+.revenue-bar-track { width: 100%; height: 16px; accent-color: var(--gold); }
+.clients-search { display: grid; min-width: min(100%,280px); gap: 4px; }
+.client-list { display: grid; gap: 10px; }
+.client-item { padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--paper); }
+.client-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; cursor: pointer; }
+.client-summary strong { font-weight: 700; }
+.client-summary span { overflow-wrap: anywhere; }
+.client-bookings { display: grid; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.client-bookings p { margin: 0; }
+.addon-admin-list { display: grid; gap: 10px; }
+.addon-admin-row { display: grid; grid-template-columns: minmax(100px,1fr) minmax(150px,2fr) 120px 90px auto auto; gap: 10px; align-items: end; padding: 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--paper); }
+.addon-code { align-self: center; overflow-wrap: anywhere; font-size: .84rem; }
+.addon-active-toggle { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.addon-active-toggle input { width: auto; height: auto; min-height: auto; }
+.addon-admin-row .button { height: 40px; }
+.sidebar-icon { display: grid; flex: 0 0 20px; place-items: center; width: 20px; height: 20px; font-size: 1.1rem; }
+.invoice-print { display: none; }
+@media (max-width: 900px) {
+  .stats-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .addon-admin-row { grid-template-columns: minmax(0,1fr) minmax(120px,2fr) 100px 80px auto auto; }
+}
+@media (max-width: 700px) {
+  .revenue-columns, .revenue-cards { grid-template-columns: 1fr; }
+  .client-summary { grid-template-columns: 1fr 1fr; }
+  .addon-admin-row { grid-template-columns: 1fr 1fr; }
+  .addon-admin-row .addon-code, .addon-admin-row label:nth-of-type(1) { grid-column: 1 / -1; }
+  .addon-admin-row .button { justify-self: end; }
+}
+@media (max-width: 760px) { .stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media print {
+  @page { margin: 18mm; }
+  body * { visibility: hidden !important; }
+  #invoicePrint, #invoicePrint * { visibility: visible !important; }
+  #invoicePrint { display: block !important; position: absolute; inset: 0 auto auto 0; width: 100%; color: #111; background: #fff; font: 12pt/1.5 Georgia, serif; }
+  #invoicePrint h1 { margin: 0 0 4px; font: 24pt Georgia, serif; }
+  #invoicePrint h2 { margin: 0 0 22px; font: 16pt Georgia, serif; }
+  #invoicePrint h3 { margin: 18px 0 4px; font: bold 12pt Georgia, serif; }
+  #invoicePrint p { margin: 4px 0; white-space: pre-line; }
+  #invoicePrint ul { margin: 4px 0 10px 22px; }
+  #invoicePrint .invoice-total { margin-top: 14px; font-weight: bold; }
+}

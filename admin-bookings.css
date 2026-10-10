@@ -104,7 +104,7 @@
 .pay-badge.is-paid { color: #fff; background: var(--green); }
 .pay-badge.is-due { color: #6b4708; background: #f3e3c2; }
 
-.extra-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 6px 0 4px; }
+.extra-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 6px 0 4px; }
 .extra-grid .wide { grid-column: 1 / -1; }
 .extra-group { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: start; align-items: center; gap: 10px 12px; padding: 16px 18px; background: #fff; border: 1px solid var(--line); border-radius: 6px; }
 .extra-group > h4 { grid-column: 1 / -1; margin: 0; color: var(--gold); font: 700 .72rem var(--body); letter-spacing: .16em; text-transform: uppercase; }
@@ -117,4 +117,33 @@
 
 @media (max-width: 760px) {
   .extra-grid { grid-template-columns: 1fr; }
+}
+
+.booking-card .row-actions .delete-booking { display: grid; place-items: center; flex: 0 0 40px; width: 40px; min-width: 40px; height: 40px; padding: 0; }
+.booking-card .row-actions .delete-booking svg { display: block; width: 18px; height: 18px; }
+.booking-side { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.booking-side .status-select { min-width: 0; }
+.booking-side .row-actions { justify-content: flex-end; }
+
+/* Booking follow-up, contact, calendar, and delivery tools */
+.booking-info { align-content: center; }
+.delivery-state, .follow-up-badge { display: inline-flex; align-items: center; width: fit-content; min-height: 24px; margin-top: 5px; padding: 2px 9px; border-radius: 99px; font: 700 .72rem var(--body); letter-spacing: .04em; }
+.delivery-state.is-delivered { color: #fff; background: var(--green); }
+.delivery-state.is-overdue { color: #fff; background: var(--red); }
+.delivery-state.is-due-today { color: #6b4708; background: #f3e3c2; }
+.delivery-state.is-upcoming { color: #4f4b44; background: #ece8e1; }
+.follow-up-badge { color: #6b4708; background: #f3e3c2; }
+.booking-side { align-content: center; gap: 8px; }
+.contact-actions { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 5px; }
+.contact-button { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-width: 0; height: 34px; min-height: 34px; padding: 0 5px; border-radius: 5px; font-size: .66rem; text-decoration: none; }
+.contact-actions .copy-message { grid-column: 1 / -1; }
+.booking-calendar-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.booking-calendar-actions .button { height: 36px; min-height: 36px; padding: 0 12px; font-size: .7rem; text-decoration: none; }
+.booking-reference-group > p { overflow-wrap: anywhere; }
+.booking-reference-group .booking-calendar-actions { grid-column: 1 / -1; }
+@media (max-width: 760px) {
+  .booking-side { grid-template-columns: minmax(0,1fr) auto; }
+  .booking-side .status-select { grid-column: 1; }
+  .booking-side .row-actions { grid-column: 2; }
+  .contact-actions { grid-column: 1 / -1; }
 }
