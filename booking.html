@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://rmaswjkqiorjswhzjcte.supabase.co; connect-src 'self' https://rmaswjkqiorjswhzjcte.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Book Dan Visuals | Wedding & Event Photography</title>
   <meta name="description" content="Tell Dan Visuals about your event and photography booking.">
   <link rel="icon" type="image/png" href="images/logo.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400;500;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="vendor/supabase.js" defer></script>
   <script src="config.js" defer></script>
   <script src="booking.js" defer></script>
 </head>
@@ -60,7 +60,7 @@
             <button type="button" id="availabilityNext" aria-label="Next month">›</button>
           </div>
           <div class="availability-grid" id="availabilityGrid" role="grid" aria-label="Choose an event date"></div>
-          <div class="availability-legend"><span class="legend-open">Available</span><span class="legend-taken">Taken / unavailable</span></div>
+          <div class="availability-legend"><span class="legend-open">Available</span><span class="legend-pending">Pending</span><span class="legend-fully-booked">Fully booked</span></div>
         </div>
       </div>
       <label>Event time<input name="time" type="time" required></label>
@@ -71,8 +71,14 @@
           <option>Cash</option><option>Bank transfer</option><option>GCash</option><option>Maya</option><option>Other / discuss with photographer</option>
         </select>
       </label>
+      <fieldset class="addons-field full-field" id="addonsFieldset" disabled>
+        <legend>Optional add-ons</legend>
+        <p id="addonsMessage">Loading add-ons…</p>
+        <div class="addons-list" id="addonsList"></div>
+      </fieldset>
+      <p class="estimated-total full-field" id="estimatedTotal" aria-live="polite">Estimated total: Select a package</p>
       <label class="form-honeypot" aria-hidden="true">Leave this field empty<input name="_honey" type="text" tabindex="-1" autocomplete="off"></label>
-      <p class="booking-note full-field">Your inquiry will be sent to Dan Visuals. Your date is not reserved until availability and booking terms are confirmed.</p>
+      <p class="booking-note full-field">Wedding bookings require a PHP 5,000 downpayment to reserve the date. After you submit an inquiry, Gabe will email you to confirm your booking and discuss the remaining balance and payment schedule.</p>
       <button class="btn booking-submit full-field" type="submit">Send booking inquiry</button>
       <p class="booking-status full-field" id="bookingStatus" role="status" aria-live="polite"></p>
     </form>
@@ -81,23 +87,6 @@
   </main>
   <footer>© <span id="year"></span> Dan Visuals</footer>
 
-  <script>
-    document.getElementById("year").textContent = new Date().getFullYear();
-    const menuButton = document.querySelector(".menu-toggle");
-    const menu = document.getElementById("site-navigation");
-    menuButton.addEventListener("click", () => {
-      const isOpen = menuButton.getAttribute("aria-expanded") === "true";
-      menuButton.setAttribute("aria-expanded", String(!isOpen));
-      menuButton.setAttribute("aria-label", isOpen ? "Open navigation" : "Close navigation");
-      menu.classList.toggle("is-open", !isOpen);
-    });
-    menu.addEventListener("click", (event) => {
-      if (event.target.closest("a")) {
-        menu.classList.remove("is-open");
-        menuButton.setAttribute("aria-expanded", "false");
-        menuButton.setAttribute("aria-label", "Open navigation");
-      }
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
