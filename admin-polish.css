@@ -1,0 +1,47 @@
+/* Final layer: phone-first layout fixes for the admin dashboard.
+   Loaded last so it can replace the older patch rules. */
+
+.blocked-date-form .add-date-button { display: inline-flex; align-items: center; justify-content: center; width: auto; min-width: 112px; height: var(--ctl, 44px); padding: 0 22px; }
+
+@media (max-width: 760px) {
+  .admin-header { padding-inline: 16px; }
+  .admin-main, .admin-main:has(.admin-sidebar:hover), .admin-main:has(.admin-sidebar:focus-within),
+  body:has(.admin-sidebar:hover) .admin-main, body:has(.admin-sidebar:focus-within) .admin-main {
+    padding: 20px 14px calc(88px + env(safe-area-inset-bottom, 0px));
+  }
+  .admin-main h1 { font-size: 2rem; line-height: 1.15; }
+
+  /* The side rail becomes a bottom tab bar you can reach with a thumb */
+  .admin-sidebar, .admin-sidebar:hover, .admin-sidebar:focus-within {
+    inset: auto 0 0 0; width: 100%; height: calc(64px + env(safe-area-inset-bottom, 0px));
+    flex-direction: row; gap: 0; padding: 0 4px env(safe-area-inset-bottom, 0px);
+    border-right: 0; border-top: 1px solid var(--line); box-shadow: 0 -4px 16px #1a1a1a14;
+  }
+  .sidebar-link { flex: 1 1 0; flex-direction: column; justify-content: center; gap: 3px; height: 100%;
+    padding: 0 2px; border-left: 0; border-top: 3px solid transparent; border-radius: 0; font-size: .72rem; }
+  .sidebar-link.is-active { border-left: 0; border-top-color: var(--gold); }
+  .sidebar-link span, .admin-sidebar:hover .sidebar-link span, .admin-sidebar:focus-within .sidebar-link span {
+    width: auto; opacity: 1; letter-spacing: .02em; white-space: nowrap;
+  }
+
+  /* Stats: two columns, the odd card spans the full row */
+  .stats-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin: 18px 0 22px; }
+  .stats-grid .stat-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .stat-card { height: 82px; padding: 12px 14px; }
+
+  /* Block a date: input and button share one row */
+  .blocked-date-form { flex-wrap: nowrap; gap: 8px; }
+  .blocked-date-form input { flex: 1 1 auto; min-width: 0; }
+  .blocked-date-form .add-date-button { flex: none; min-width: 0; padding: 0 16px; }
+
+  /* Bookings toolbar and filters */
+  .view-toolbar { align-items: center; gap: 12px; }
+  .view-toolbar p { flex: 1; margin: 0; }
+  .filter-bar { flex-wrap: nowrap; overflow-x: auto; margin-inline: -14px; padding: 2px 14px 6px; scrollbar-width: none; }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-pill { flex: none; }
+
+  /* Booking card: status + delete on one line, no stray gaps */
+  .booking-side { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 10px; }
+  .booking-side .status-select { width: 100%; }
+}

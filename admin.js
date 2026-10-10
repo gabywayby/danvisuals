@@ -395,25 +395,6 @@
       });
       select.value = status;
       side.append(select);
-      const contactActions = make("div", "contact-actions");
-      const phone = toE164(booking.phone);
-      const email = String(booking.email || "");
-      const links = [
-        ["Call", `tel:${phone}`], ["SMS", `sms:${phone}`],
-        ["Viber", `viber://chat?number=%2B${encodeURIComponent(phone.replace(/\D/g, ""))}`],
-        ["Email", `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(`Booking · ${booking.event || "Inquiry"}`)}`]
-      ];
-      links.forEach(([text, href]) => {
-        const link = make("a", "button contact-button", text);
-        link.href = href;
-        if (text === "Email") link.setAttribute("aria-label", `Email ${booking.name || "client"}`);
-        contactActions.append(link);
-      });
-      const copyMessage = make("button", "button contact-button copy-message", "Copy message");
-      copyMessage.type = "button";
-      copyMessage.dataset.bookingId = booking.id;
-      contactActions.append(copyMessage);
-      side.append(contactActions);
       const actions = make("div", "row-actions");
       const deleteButton = make("button", "button button-danger delete-booking");
       deleteButton.type = "button";
@@ -1057,23 +1038,6 @@
   });
 
   bookingsBody.addEventListener("click", async (event) => {
-    const copyButton = event.target.closest(".copy-message");
-    if (copyButton) {
-      const booking = bookings.find((item) => item.id === copyButton.dataset.bookingId);
-      if (!booking) return;
-      const extras = addonDetails(booking);
-      const addonText = extras.length ? ` + ${extras.map((item) => item.label).join(", ")}` : "";
-      const firstName = String(booking.name || "there").trim().split(/\s+/)[0];
-      const message = `Hi ${firstName}! Thank you for booking with Dan Visuals. Here are your details:\n${booking.event} - ${formatDate(booking.event_date)}, ${booking.event_time}\nLocation: ${booking.location}\nPackage: ${packageName(booking.package)}${addonText}\nTotal: ${formatPhp(booking.total_price)}\nBooking code: ${booking.booking_code || ""}\nPlease reply to confirm. Thank you!`;
-      try {
-        await navigator.clipboard.writeText(message);
-        copyButton.textContent = "Copied";
-        window.setTimeout(() => { if (copyButton.isConnected) copyButton.textContent = "Copy message"; }, 1600);
-      } catch {
-        dashboardMessage.textContent = "Couldn’t copy the message. Check clipboard permission.";
-      }
-      return;
-    }
     const icsButton = event.target.closest(".download-ics");
     if (icsButton) {
       const booking = bookings.find((item) => item.id === icsButton.dataset.bookingId);
